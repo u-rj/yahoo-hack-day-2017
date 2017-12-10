@@ -13,6 +13,7 @@ export default {
 
 <style>
 html {
+  height: 2000px;
   background: lightgray;
 }
 /*

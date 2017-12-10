@@ -37,7 +37,8 @@ export default {
       video: null,
       already: false,
       warn: false,
-      nearImage: ''
+      nearImage: '',
+      apiFirstAccess: 0
     }
   },
   methods: {
@@ -53,13 +54,14 @@ export default {
       let video = document.querySelector('#video')
       navigator.getUserMedia({video: true, audio: false}, (stream) => {
         console.log(stream)
+
         video.src = window.URL.createObjectURL(stream)
       }, (err) => {
         console.log('video', err)
       })
       setInterval(() => {
         this.cameraImage()
-      }, 500)
+      }, 1000)
     },
     cameraImage () {
       let video = document.querySelector('#video')
@@ -84,6 +86,10 @@ export default {
           image: imageUrl
         })
       }).done((response) => {
+        if (this.apiFirstAccess < 5) {
+          this.apiFirstAccess += 1
+          return
+        }
         console.log('ok', response.predict)
         this.warn = (response.predict === 'near')
 
@@ -94,6 +100,15 @@ export default {
     }
   },
   mounted () {
+    let alternate = 0
+    let animate = () => {
+      // let top = (window.scrollTop) ? window.scrollTop : document.scrollTop
+      // top = alternate
+      jquery('body, html').scrollTop(alternate)
+      alternate = (alternate === 0) ? 1 : 0
+      requestAnimationFrame(animate)
+    }
+    requestAnimationFrame(animate)
     // this.notify()
     this.camera()
   }
