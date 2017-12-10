@@ -19,10 +19,8 @@
       <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
     </ul>
     -->
-    <video class="video" id="video"></video>
-    <img v-show="false" id="image">
-    <canvas v-show="false" id="canvas"></canvas>
-    <img v-show="warn" class="alert" :src="require('../assets/alert2.jpg')">
+    <div class="button" @click="report">通報する</div>
+    <img :src="image">
   </div>
 </template>
 
@@ -33,11 +31,8 @@ export default {
   name: 'HelloWorld',
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App',
-      video: null,
-      already: false,
-      warn: false,
-      nearImage: ''
+      image: '',
+      notifyVar: null
     }
   },
   methods: {
@@ -45,57 +40,33 @@ export default {
       if (Notification.permission === 'default') {
         Notification.requestPermission()
       }
-      Notification('危険運転を検知しました。')
+      this.notifyVar = new Notification('危険運転を検知しました。')
     },
-    camera () {
-      if (this.already) return
-      this.already = true
-      let video = document.querySelector('#video')
-      navigator.getUserMedia({video: true, audio: false}, (stream) => {
-        console.log(stream)
-        video.src = window.URL.createObjectURL(stream)
-      }, (err) => {
-        console.log('video', err)
-      })
-      setInterval(() => {
-        this.cameraImage()
-      }, 500)
-    },
-    cameraImage () {
-      let video = document.querySelector('#video')
-      let canvas = document.querySelector('#canvas')
-      let ctx = canvas.getContext('2d')
-
-      let w = video.offsetWidth
-      let h = video.offsetHeight
-
-      canvas.setAttribute('width', w)
-      canvas.setAttribute('height', h)
-
-      ctx.drawImage(video, 0, 0, w, h)
-
-      let imageUrl = canvas.toDataURL('image/jpeg')
+    report () {
       jquery.ajax({
         type: 'POST',
-        url: 'https://yahoohack2017.herokuapp.com/api/detect',
+        url: 'https://yahoohack2017.herokuapp.com/api/reckless_driving/report',
         contentType: 'application/json',
         dataType: 'json',
         data: JSON.stringify({
-          image: imageUrl
+          images: [this.image]
         })
       }).done((response) => {
-        console.log('ok', response.predict)
-        this.warn = (response.predict === 'near')
-
-        if (!this.warn) return
-        
-        localStorage.setItem('car-image', imageUrl)
+        alert('通報しました')
+        location.reload()
       })
     }
   },
   mounted () {
     // this.notify()
-    this.camera()
+
+    setInterval(() => {
+      let image = localStorage.getItem('car-image')
+      if (!image) return
+      localStorage.removeItem('car-image')
+      this.image = image
+      this.notify()
+    }, 2000)
   }
 }
 </script>
@@ -116,6 +87,13 @@ li {
 a {
   color: #42b983;
 }
+.button {
+  background: #ffd42a;
+  text-align: center;
+  font-size: 30px;
+  color: white;
+  padding: 20px 0;
+}
 .video {
  position: fixed;
  left: 0;
@@ -125,8 +103,8 @@ a {
 }
 .alert {
  position: fixed;
- left: 20vw;
+ left: 300px;
  top: 100px;
- width: 60vw;
+ width: 250px;
 }
 </style>
