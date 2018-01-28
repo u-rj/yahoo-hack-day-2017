@@ -19,10 +19,29 @@
       <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
     </ul>
     -->
+    <youtube :video-id="videoId"></youtube>
     <video class="video" id="video"></video>
     <img v-show="false" id="image">
     <canvas v-show="false" id="canvas"></canvas>
-    <img v-show="warn" class="alert" :src="require('../assets/alert2.jpg')">
+    <div v-show="alertType > 0" class="alert">
+      <div v-show="alertType === 1">
+        <img src="../assets/alert.png">
+        <p>あおり運転を検知しました<br>
+        後方の車両に注意してください（仮）</p>
+      </div>
+      <div v-show="alertType === 2">
+        <img src="../assets/alert.png">
+        <p>集中度が低いです<br>
+        運転を止めて休憩してください（仮）
+        </p>
+      </div>
+      <div v-show="alertType === 3">
+        <img src="../assets/alert.png">
+        <p>１分後は危険度が高い地点です<br>
+        走行に注意してください（仮）
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -38,7 +57,8 @@ export default {
       already: false,
       warn: false,
       nearImage: '',
-      apiFirstAccess: 0
+      apiFirstAccess: 0,
+      alertType: 0
     }
   },
   methods: {
@@ -94,7 +114,6 @@ export default {
         this.warn = (response.predict === 'near')
 
         if (!this.warn) return
-        
         localStorage.setItem('car-image', imageUrl)
       })
     }
@@ -131,17 +150,37 @@ li {
 a {
   color: #42b983;
 }
+p {
+  padding: 0;
+  margin: 0;
+}
 .video {
  position: fixed;
  left: 0;
  top: 0;
  width: 900px;
  height: 600px;
+ opacity: 0;
 }
 .alert {
  position: fixed;
- left: 20vw;
- top: 100px;
- width: 60vw;
+ left: 0;
+ top: 0;
+ width: 100vw;
+ height: 100vh;
+ background: rgba(0,0,0,0.7);
+ text-align: center;
+ padding-top: 15vh;
+}
+.alert img {
+  width: 15vw;
+  margin-bottom: 5vh;
+}
+.alert p {
+  font-size: 70px;
+  color: #FED340;
+  line-height: 1.2;
+  font-weight: bold;
 }
 </style>
+
