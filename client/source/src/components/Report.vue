@@ -61,11 +61,19 @@ export default {
     // this.notify()
 
     setInterval(() => {
-      let image = localStorage.getItem('car-image')
-      if (!image) return
-      localStorage.removeItem('car-image')
-      this.image = image
-      this.notify()
+      jquery.ajax({
+        type: 'GET',
+        url: 'https://yahoohack2017.herokuapp.com/api/ng_check',
+        contentType: 'application',
+        dataType: 'json'
+      }).done((response) => {
+        if (response['is_ng']) {
+          localStorage.removeItem('car-image')
+          this.image = response.image
+          // this.notify()
+        } else {
+        }
+      })
     }, 2000)
   }
 }

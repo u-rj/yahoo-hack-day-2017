@@ -1,5 +1,5 @@
 <template>
-  <div class="hello" @click="cancelAlert">
+  <div class="hello">
     <!--
     <h1>{{ msg }}</h1>
     <h2>Essential Links</h2>
@@ -48,7 +48,7 @@
     </gmap-map>
     <img v-show="false" id="image">
     <canvas v-show="false" id="canvas"></canvas>
-    <div v-show="alertType > 0" class="alert">
+    <div @click="cancelAlert" v-show="alertType > 0" class="alert">
       <div v-show="alertType === 1">
         <img src="../assets/alert.png">
         <p>あおり運転を検知しました<br>
@@ -62,7 +62,7 @@
       </div>
       <div v-show="alertType === 3">
         <img src="../assets/alert.png">
-        <p>１分後は危険度が高い地点です<br>
+        <p>500m以内は危険度が高い地点です<br>
         走行に注意してください
         </p>
       </div>
@@ -84,6 +84,7 @@ export default {
       warn: false,
       nearImage: '',
       apiFirstAccess: 0,
+      timer: null,
       alertType: 0
     }
   },
@@ -102,8 +103,13 @@ export default {
     },
     circleClick () {
       this.alertType = 3
-      setTimeout(() => {
+      this.setTimer()
+    },
+    setTimer () {
+      if (this.timer) clearTimeout(this.timer)
+      this.timer = setTimeout(() => {
         this.alertType = 0
+        this.timer = null
       }, 3000)
     },
     getNearMisses () {
@@ -158,7 +164,8 @@ export default {
           this.apiFirstAccess += 1
           return
         }
-        this.alertType = (response.predict === 'near') ? 1 : 0
+        this.alertType = (response.predict === 'near') ? 1 : this.alertType
+        this.setTimer()
         console.log('ok', response.predict, this.alertType)
 
         // if (!this.warn) return
