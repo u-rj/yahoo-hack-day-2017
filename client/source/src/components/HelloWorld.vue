@@ -19,7 +19,6 @@
       <li><a href="https://github.com/vuejs/awesome-vue" target="_blank">awesome-vue</a></li>
     </ul>
     -->
-    <youtube :video-id="videoId"></youtube>
     <video class="video" id="video"></video>
     <img v-show="false" id="image">
     <canvas v-show="false" id="canvas"></canvas>
@@ -110,11 +109,11 @@ export default {
           this.apiFirstAccess += 1
           return
         }
-        console.log('ok', response.predict)
-        this.warn = (response.predict === 'near')
+        this.alertType = (response.predict === 'near') ? 1 : 0
+        console.log('ok', response.predict, this.alertType)
 
-        if (!this.warn) return
-        localStorage.setItem('car-image', imageUrl)
+        // if (!this.warn) return
+        // localStorage.setItem('car-image', imageUrl)
       })
     }
   },
@@ -158,9 +157,8 @@ p {
  position: fixed;
  left: 0;
  top: 0;
- width: 900px;
+ width: 800px;
  height: 600px;
- opacity: 0;
 }
 .alert {
  position: fixed;

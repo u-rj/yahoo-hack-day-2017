@@ -14,6 +14,11 @@ export default {
 <style>
 html {
   height: 2000px;
+  background: gray;
+}
+body {
+  background: white;
+  width: 1000px;
 }
 /*
 #app {
