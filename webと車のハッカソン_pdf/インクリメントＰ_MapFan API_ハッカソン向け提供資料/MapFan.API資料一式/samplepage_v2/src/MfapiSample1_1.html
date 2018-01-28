@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【1-1.地図表示】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    // 本サンプルページ読み出し時に本関数が呼ばれます。
+    window.onload = function() {
+
+      //### サーバ名設定 ###
+      // 利用する地図APIサーバ名を設定します。
+      // なお、このサンプルではテスト利用サーバー名を設定しています。
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+
+      //### 認証リクエスト処理 ###
+      // 認証APIの実行要求を行います。
+      // 第１パラメータには、お客様専用に発行した顧客IDを設定します。
+      // 第２パラメータには、認証手続き完了後に呼び出すコールバック関数を設定します。
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        // 認証手続き処理失敗時の処理コードをここに記述してください。
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      // 地図の作成条件を設定します。
+      // このサンプルでは地図初期の中心緯度経度とスケールを指定します。
+      // 詳細はMapOptionsクラスの仕様をご参照下さい。
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.70030321482975,35.68955994193983),
+        mapScale : 16
+      };
+
+      //### 地図作成処理 ###
+      // 地図作成処理を実行します。id='sample_map'のDIVタグ上に地図を生成します。
+      Mfapi.mapCreate('sample_map',options);
+    }
+  </script>
+</head>
+<body>
+  <!--地図DIVタグ-->
+  <div id='sample_map'></div>
+</body>
+</html>

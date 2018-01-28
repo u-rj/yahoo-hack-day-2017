@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-3.マーカー非表示・削除】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+      position: relative;
+    }
+    #floating-panel {
+       width: 120px;
+       height: 90px;
+       position: absolute;
+       right: 5px;
+       top: -170px;
+       bottom: 0;
+       margin: auto;
+       z-index: 5;
+       background-color: #fff;
+       padding: 5px;
+       border: 1px solid #999;
+       text-align: center;
+       font-family: 'Roboto','sans-serif';
+       line-height: 30px;
+     }
+     #floating-panel input {
+       width: 120px;
+     }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### マーカーレイヤー作成処理 ###
+      // マーカーを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 地図をクリックした場合に処理が呼ばれます。
+      Mfapi.Events.onMapClick = function (screenPosition, mapPosition) {
+        // マーカーを追加します。
+        addMarker(mapPosition);
+      };
+      // 初期表示時にマーカーを追加します。
+      addMarker(options.centerPosition);
+    }
+
+    //### マーカー追加処理 ###
+    function addMarker(location) {
+      // マーカーが存在する場合は、件数を取得します。
+      var count = Mfapi.Features.Marker ? Object.keys(Mfapi.Features.Marker).length : 0;
+
+      //### マーカー作成処理 ###
+
+      // マーカーのフィーチャー識別子：重複しないように件数を指定しています。
+      var markerId = "marker_"+count;
+      // マーカーの作成条件を設定します。
+      var markerOpt = {
+        position :  location,                 // クリックした地点の緯度経度
+      };
+
+      // マーカーレイヤーにマーカーを登録します。
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+    }
+
+    //### マーカー表示・非表示設定 ###
+    function setMapOnAll(isVisible) {
+      // 全てのマーカーを参照し、マーカーの表示 ON-OFFを更新します。
+      for (var key in Mfapi.Features.Marker) {
+        Mfapi.Features.Marker[key].setOptions({visible: isVisible});
+      }
+    }
+
+    //### マーカー非表示 ###
+    function clearMarkers() {
+      setMapOnAll(false);
+    }
+
+    //### マーカー表示 ###
+    function showMarkers() {
+      setMapOnAll(true);
+    }
+
+    //### マーカー削除 ###
+    function deleteMarkers() {
+      // マーカーを非表示にします。
+      clearMarkers();
+      // 全てのマーカーを参照し、マーカーを削除します。
+      for (var key in Mfapi.Features.Marker) {
+        Mfapi.Features.remove(key);
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'>
+    <div id="floating-panel">
+      <input id="clearMarkers" onclick="clearMarkers();" type=button value="マーカー非表示"><br>
+      <input id="showMarkers" onclick="showMarkers();" type=button value="マーカー表示"><br>
+      <input id="deleteMarkers" onclick="deleteMarkers();" type=button value="マーカー削除">
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-6.図形操作】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 450px;
+      height: 280px;
+      margin: 5px;
+      padding: 0px;
+    }
+  </style>
+  <!--情報表示DIVのスタイル-->
+  <style type="text/css">
+    #info {
+      float: left;
+      margin: 2px;
+      padding: 2px;
+      background-color:#eeeeee;
+    }
+    .indent1 {
+      margin-left: 1.2em;
+    }
+    .value1 {
+      width: 60px;
+    }
+    .button1 {
+      width: 40px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### ジオメトリーレイヤー作成処理 ###
+      // 各図形を表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### 図形オブジェクト作成 ###
+
+      // サークルの作成条件を設定します。
+      var circleOpt = {
+        edgeColor : '#ff0000',     // 枠線の色
+        edgeWidth : 4,             // 枠線の幅
+        fillColor : '#00ff00',     // 塗り色
+        opacity : 0.5,             // 不透明度
+        position :  new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),  // 東京駅
+        radius : 1600,             // 半径
+        visible : true             // 表示ON/OFF
+      };
+      // ポリゴンの作成条件を設定します。
+      var polygonOpt = {
+        edgeColor : '#ff00ff',     // 枠線の色
+        edgeWidth : 4,             // 枠線の幅
+        fillColor : '#00ff00',     // 塗り色
+        opacity : 0.5,             // 不透明度
+        positions : [
+           new Mfapi.Util.LonLat(139.75821002138233,35.66657238126213),  // 新橋駅
+           new Mfapi.Util.LonLat(139.7959191978587,35.655211407306176),  // 豊洲駅
+           new Mfapi.Util.LonLat(139.79315890678254,35.63467955160454),  // 有明駅
+           new Mfapi.Util.LonLat(139.73875357500563,35.62850770123775),  // 品川駅
+           new Mfapi.Util.LonLat(139.70134957426947,35.65864567145413)   // 渋谷駅
+          ],
+        visible : true             // 表示ON/OFF
+      };
+      // ポリラインの作成条件を設定します。
+      var polylineOpt = {
+        lineColor : '#0000ff',     // 線の色
+        lineWidth : 4,             // 線の幅
+        opacity : 0.8,             // 不透明度
+        positions : [
+            new Mfapi.Util.LonLat(139.70090283767686,35.68851826791775),  // 新宿駅
+            new Mfapi.Util.LonLat(139.7108740987224,35.72992490706989),   // 池袋駅
+            new Mfapi.Util.LonLat(139.77649106403516,35.713413463237565), // 上野駅
+            new Mfapi.Util.LonLat(139.8166571438273,35.718386818767186),  // 曳舟駅
+            new Mfapi.Util.LonLat(139.826947289596,35.69723830373342),    // 亀戸駅
+            new Mfapi.Util.LonLat(139.77311565279877,35.69837872503799)   // 秋葉原駅
+          ],
+        visible : true             // 表示ON/OFF
+      };
+      // ポイント作成条件(緯度経度以外)
+      var pointOpt = {
+        edgeColor : '#ff0000',     // 枠線の色
+        edgeWidth : 1,             // 枠線の幅
+        fillColor : '#ff0000',     // 塗り色
+        opacity : 0.8,             // 不透明度
+        positions : null,          // 緯度経度※作成時に後述のpointsから取得する
+        width : 10,                // 点幅
+        visible : true             // 表示ON/OFF
+      };
+      // ポイント緯度経度
+      var points = [
+        new Mfapi.Util.LonLat(139.7006928036672,35.68961425420631),    // 新宿駅
+        new Mfapi.Util.LonLat(139.69745031099612,35.700751497234926),  // 大久保駅
+        new Mfapi.Util.LonLat(139.68493810396686,35.706241989984754),  // 東中野駅
+        new Mfapi.Util.LonLat(139.66573110323358,35.70580811283242),   // 中野駅
+        new Mfapi.Util.LonLat(139.64944234591596,35.70530453629846),   // 高円寺駅
+        new Mfapi.Util.LonLat(139.63572850925237,35.70494035144415),   // 阿佐ヶ谷駅
+        new Mfapi.Util.LonLat(139.6203838895091,35.70450646720755)     // 荻窪駅
+      ];
+
+      // ジオメトリーレイヤーに各図形を登録します。
+      Mfapi.Map.GeometryLayer['gLayer'].addCircle(circleOpt,'circle');
+      Mfapi.Map.GeometryLayer['gLayer'].addPolygon(polygonOpt,'polygon');
+      Mfapi.Map.GeometryLayer['gLayer'].addPolyline(polylineOpt,'polyline');
+      for (var i=0,len=points.length; i < len; i++) {
+        pointOpt.position = points[i];
+        Mfapi.Map.GeometryLayer['gLayer'].addPoint(pointOpt,'point_'+(i+1));
+      }
+
+      //### 表示ON/OFFチェックボックスの初期状態の設定 ###
+      document.getElementById('chkDispCircle').checked = true;
+      document.getElementById('chkDispPolygon').checked = true;
+      document.getElementById('chkDispPolyline').checked = true;
+      document.getElementById('chkDispPoint').checked = true;
+
+      //### 属性入力テキストボックスの初期状態の設定(半径、塗色、線幅、点幅) ###
+      document.getElementById('txtCircleRadius').value = circleOpt.radius;
+      document.getElementById('txtPolygonFillColor').value = polygonOpt.fillColor;
+      document.getElementById('txtPolylineLineWidth').value = polylineOpt.lineWidth;
+      document.getElementById('txtPointWidth').value = pointOpt.width;
+    }
+
+    //### サークルの表示ON/OFF制御 ###
+    function chkCircle(status) {
+
+      // チェックボックスの状態をオブジェクト側に反映します。
+      Mfapi.Features.Circle['circle'].setVisible(status);
+    }
+
+    //### ポリゴンの表示ON/OFF制御 ###
+    function chkPolygon(status) {
+
+      // チェックボックスの状態をオブジェクト側に反映します。
+      Mfapi.Features.Polygon['polygon'].setVisible(status);
+    }
+
+    //### ポリラインの表示ON/OFF制御 ###
+    function chkPolyline(status) {
+
+      // チェックボックスの状態をオブジェクト側に反映します。
+      Mfapi.Features.Polyline['polyline'].setVisible(status);
+    }
+
+    //### ポイントの表示ON/OFF制御 ###
+    function chkPoint(status) {
+
+      for (var featureId in Mfapi.Features.Point) {
+        // チェックボックスの状態をオブジェクト側に反映します。
+        Mfapi.Features.Point[featureId].setVisible(status);
+      }
+
+    }
+
+    //### サークル：半径の更新 ###
+    // 図形オブジェクトの各属性値を更新します。
+    // フィーチャーIDから図形オブジェクトを取得し、作成条件を更新します。
+    // この方法は図形オブジェクト、マーカー、付帯オブジェクトにて利用できます。
+    function updateCircle() {
+
+      // フィーチャーIDから図形オブジェクトを取得します。
+      var feature = Mfapi.Features.getObject('circle');
+
+      // 変更する値を設定します。
+      var updateOpt = {
+         'radius': parseInt(document.getElementById('txtCircleRadius').value),
+         'visible': true
+      };
+
+      // 作成条件を更新します。
+      feature.setOptions(updateOpt);
+
+      // チェックボックスの状態を表示ONとします。
+      document.getElementById('chkDispCircle').checked = true;
+    }
+
+    //### ポリゴン：塗色の更新 ###
+    // フィーチャーIDから図形オブジェクトを取得し、現在設定中の作成条件を取得します。
+    // 設定中の作成条件を新しい値に変更し、作成条件を更新します。
+    // この方法は図形オブジェクト、マーカー、付帯オブジェクトにて利用できます。
+    function updatePolygon() {
+
+      // フィーチャーIDからポリゴンを取得します。
+      var feature = Mfapi.Features.getObject('polygon');
+
+      // 設定中の作成条件を取得し、値を更新します。
+      var updateOpt = feature.getOptions();
+      updateOpt.fillColor = document.getElementById('txtPolygonFillColor').value;
+      updateOpt.visible = true;
+
+      // 作成条件を更新します。
+      Mfapi.Features.Polygon['polygon'].setOptions(updateOpt);
+
+      // チェックボックスの状態を表示ONとします。
+      document.getElementById('chkDispPolygon').checked = true;
+    }
+
+    //### ポリライン：線幅の更新 ###
+    // フィーチャークラスに格納されているフィーチャーIDを直接参照し作成条件を更新します。
+    // この方法は図形オブジェクト、マーカー、付帯オブジェクトにて利用できます。
+    function updatePolyline() {
+
+      // 変更する値を設定します。
+      var updateOpt = {
+         'lineWidth': parseInt(document.getElementById('txtPolylineLineWidth').value),
+         'visible': true
+      };
+
+      // 作成条件を設定します。
+      Mfapi.Features.Polyline['polyline'].setOptions(updateOpt);
+
+      // チェックボックスの状態を表示ONとします。
+      document.getElementById('chkDispPolyline').checked = true;
+    }
+
+    //### ポイント：点幅の更新 ###
+    function updatePoint() {
+
+      // テキストボックスから属性値を取得します。
+      var width = parseInt(document.getElementById('txtPointWidth').value);
+      //### 各ポイント取得 ###
+      for (var featureId in Mfapi.Features.Point) {
+          // 変更する値を設定します。
+          var updateOpt = {
+             'width': width,
+             'visible':true
+          };
+          // 作成条件を設定します。
+          Mfapi.Features.Point[featureId].setOptions(updateOpt);
+      }
+      // チェックボックスの状態を表示ONとします。
+      document.getElementById('chkDispPoint').checked = true;
+    }
+
+  </script>
+</head>
+<body>
+  <!--地図DIVタグ-->
+  <div id='sample_map'></div>
+  <!--情報表示DIVタグ-->
+  <div id='info'>
+    <p>
+      <input type="checkbox" id='chkDispCircle' onclick='chkCircle(this.checked)'>サークル<br>
+      <span class='indent1'>半径<input type='text' id='txtCircleRadius' class='value1'>
+      <input type='button' class='button1' value='更新' onclick='updateCircle()'>
+    </p>
+    <p>
+      <input type="checkbox" id='chkDispPolygon' onclick='chkPolygon(this.checked)'>ポリゴン<br>
+      <span class='indent1'>塗色<input type='text' id='txtPolygonFillColor' class='value1'>
+      <input type='button' class='button1' value='更新' onclick='updatePolygon()'>
+    </p>
+    <p>
+      <input type="checkbox" id='chkDispPolyline' onclick='chkPolyline(this.checked)'>ポリライン<br>
+      <span class='indent1'>線幅<input type='text' id='txtPolylineLineWidth' class='value1'>
+      <input type='button' class='button1' value='更新' onclick='updatePolyline()'>
+    </p>
+    <p>
+      <input type="checkbox" id='chkDispPoint' onclick='chkPoint(this.checked)'>ポイント<br>
+      <span class='indent1'>点幅<input type='text' id='txtPointWidth' class='value1'>
+      <input type='button' class='button1' value='更新' onclick='updatePoint()'>
+    </p>
+  </div>
+</body>
+</html>

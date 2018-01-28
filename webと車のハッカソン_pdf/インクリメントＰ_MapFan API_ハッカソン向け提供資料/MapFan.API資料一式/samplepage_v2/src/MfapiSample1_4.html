@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【1-4.コントローラー設定（ズームボタン）】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.70030321482975,35.68955994193983),
+        mapScale : 16,
+        zoomButtonShown : true,                    // ズームボタン表示のON / OFF設定
+        zoomButtonColor : '#c9171e',               // ズームボタン色
+        zoomButtonTextColor : '#ffffff',           // ズームボタン文字色
+        zoomButtonOffset : {'x': 625, 'y': 5},     // ズームボタンの表示位置
+        zoomButtonOpacity : 1                      // ズームボタンの不透明度
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+    }
+  </script>
+</head>
+<body>
+  <!--地図DIVタグ-->
+  <div id='sample_map'></div>
+</body>
+</html>

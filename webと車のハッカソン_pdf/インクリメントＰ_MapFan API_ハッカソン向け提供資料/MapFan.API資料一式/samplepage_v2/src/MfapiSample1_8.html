@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【1-8.地図操作】</title>
+  <!--地図DIVのスタイル：
+    本サンプルではフォーカスが当たったときに枠線が出ないように、outlineをnoneとしています。-->
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 480px;
+      height: 280px;
+      margin: 5px;
+      padding: 0px;
+      outline: none;
+    }
+  </style>
+  <!--情報表示DIVのスタイル-->
+  <style type="text/css">
+    #info {
+      float: left;
+      margin: 2px;
+      padding: 2px;
+      background-color:#eeeeee;
+    }
+    .value1 {
+      width: 130px;
+    }
+    .value2 {
+      width: 36px;
+    }
+    #center_image {
+      width: 34px;
+      height: 30px;
+    }
+    #center_div {
+      position: absolute;
+      z-index: 5000000;
+      left: 233px;
+      top: 135px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      // 地図操作の許可・禁止設定をtrueに設定します。指定なしの場合は、trueとなります。
+      // falseを指定した場合は、地図の操作が無効となります。
+      var options = {
+        mapOperationEnable: true,
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 12
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### 地図中心緯度経度変更時の処理 ###
+      function map_position_event(position) {
+        // 情報表示：中心緯度経度を右欄に表示します。
+        document.getElementById('lon').value = position.lon;
+        document.getElementById('lat').value = position.lat;
+      }
+
+      //### 地図スケール変更時の処理 ###
+      function map_scale_event(scale) {
+        // 情報表示：スケールを右欄に表示します。
+        document.getElementById('scale').value = scale;
+      }
+
+      //### 地図状態変更イベントのコールバック関数を設定 ###
+      Mfapi.Events.onChangedMapCenter = map_position_event;
+      Mfapi.Events.onChangedMapScale = map_scale_event;
+
+      //### 情報表示：初期の中心緯度経度、スケール、フォーカスを代入 ###
+      var scale = Mfapi.Map.getMapScale();
+      var position = Mfapi.Map.getCenterPosition();
+      document.getElementById('scale').value = scale;
+      document.getElementById('lon').value = position.lon;
+      document.getElementById('lat').value = position.lat;
+      document.getElementById('key-ctrl').value = 'off';
+    }
+    //### フォーカスの状態表示(on/off) ###
+    function onMapFocus() {
+      // 地図のfocusイベント発生時、右欄を更新します。
+      document.getElementById('key-ctrl').value = 'on';
+    }
+    function onMapBlur() {
+      // 地図のblurイベント発生時、右欄を更新します。
+      document.getElementById('key-ctrl').value = 'off';
+    }
+  </script>
+</head>
+<body>
+  <!--
+      地図DIVタグ：地図画面にフォーカスがあたるようにtabindexを追記しています。
+      フォーカスされたイベント「focus」、「focusin」と
+      フォーカスが外れたイベント「blur」、「focusout」の
+      両方を指定しているためブラウザによっては２回イベントが発生します。
+  -->
+  <div id='sample_map' tabindex='1' onfocus='onMapFocus();' onfocusin='onMapFocus();' onblur='onMapBlur();' onfocusout='onMapBlur();'></div>
+  <!--情報表示DIVタグ-->
+  <div id='info'>
+    <p>経度(longitude)：<br>
+      <input type='text' id='lon' class='value1' tabindex='2' readonly></input></p>
+    <p>緯度(latitude)：<br>
+      <input type='text' id='lat' class='value1' tabindex='3' readonly></input></p>
+    <p>スケール：
+      <input type='text' id='scale' class='value2' tabindex='4' readonly></input></p>
+    <p>フォーカス：
+      <input type='text' id='key-ctrl' class='value2' tabindex='5' readonly></input></p>
+  </div>
+  <!--地図中心を示すパーツのDIVタグ-->
+  <div id='center_div'><img id='center_image' src='img/center.png'></div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-2.地図移動開始・終了イベント】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    var visiblePopUpList = [];
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### 地点リスト ###
+      var pointData = [
+        { name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+          text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+          popUpType: 2, imageUrl:'./img/a.gif', width:48, height:48, x:-24, y:-36, popUpVisible: false },
+        { name: '新橋営業所', lon: 139.75821002138233, lat: 35.66657238126213,
+          text: '<div><b>新橋営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 10:00-19:00</div>',
+          popUpType: 1, markerType: 1, popUpVisible: false },
+        { name: '豊洲配送事業所', lon: 139.7959191978587, lat: 35.655211407306176,
+          text: '<div"><b>豊洲配送事業所</b><br>tel 03-XXXX-XXXX</div>',
+          popUpType: 2, imageUrl:'./img/b.gif', width:48, height:48, x:-24, y:-30, popUpVisible: true },
+        { name: '有明駅営業所', lon: 139.79315890678254, lat: 35.63467955160454,
+          text: '<div><b>有明駅営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 11:00-21:00</div>',
+          popUpType: 1, markerType: 1, popUpVisible: false },
+        { name: '品川営業所', lon: 139.73875357500563, lat: 35.62850770123775,
+          text: '<div><b>品川営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-19:00</div>',
+          popUpType: 1, markerType: 1, popUpVisible: true },
+        { name: '渋谷営業所', lon: 139.70134957426947, lat: 35.65864567145413,
+          text: '<div><b>渋谷営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-21:00</div>',
+          popUpType: 1, markerType: 1, popUpVisible: true },
+        { name: '新宿営業所', lon: 139.70090283767686, lat: 35.68851826791775,
+          text: '<div><b>新宿営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 ２４時間営業</div>',
+          popUpType: 1, markerType: 6, popUpVisible: false }
+      ];
+
+      // マーカーレイヤーを追加します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // マーカーとポップアップ作成します。
+      for( var i=0; i<pointData.length; i++ ) {
+
+        // ポップアップのフィーチャー識別子作成および条件を設定します。
+        var id1 = 'popup_'+i;
+        var opt1 = {
+          size : new Mfapi.Util.ScreenSize(180,80),
+          popUpType : pointData[i].popUpType,
+          contentHtml : pointData[i].text,
+          visible : pointData[i].popUpVisible
+        };
+
+        // ポップアップを作成します。
+        Mfapi.Features.createPopUp(opt1, id1);
+
+        // マーカーのフィーチャー識別子作成および条件を設定します。
+        var id2 = 'marker_'+i;
+        var opt2 = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : id1
+        };
+        if( pointData[i].imageUrl !== undefined ) {
+          opt2.imageUrl = pointData[i].imageUrl;
+          opt2.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+          opt2.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+          opt2.imageOpacity = 0.8;
+        } else {
+          opt2.markerType = pointData[i].markerType;
+        }
+
+        // マーカーを作成し、レイヤーに追加します。
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(opt2, id2);
+      }
+
+      // 地図移動開始イベントのコールバック関数を設定します。
+      Mfapi.Events.onMapMoveStart = mapMoveStart;
+
+      // 地図移動終了イベントのコールバック関数を設定します。
+      Mfapi.Events.onMapMoveEnd = mapMoveEnd;
+
+    }
+
+    //### 地図移動開始イベントのコールバック関数 ###
+    function mapMoveStart(){
+      // 地図移動開始時に表示中のポップアップの識別子を格納します。
+      // 地図移動終了時に配列に格納されている識別子のポップアップのみ表示させます。
+      // 識別子格納後、ポップアップ一括非表示処理メソッドを呼び出します。
+      visiblePopUpList = [];
+      var popUp = Mfapi.Features.PopUp;
+      if (popUp) {
+        for (var popUpKey in popUp) {
+          // ポップアップの表示状態を取得します。
+          // ポップアップの場合のみdivのIDがポップアップ作成時に設定したフィーチャー識別子となります。
+          // ポップアップが非表示の時はstyleのdisplay値が'none'となりますので、'none'以外のものをリストに格納します。
+          var popUpDiv = document.getElementById(popUpKey);
+          if (!popUpDiv) continue;
+          if (popUpDiv.style.display != 'none') {
+            visiblePopUpList.push(popUpKey);
+          }
+        }
+      }
+      Mfapi.Map.hidePopUpAll();
+    }
+
+    //### 地図移動終了イベントのコールバック関数 ###
+    // 地図移動開始イベントで表示されているポップアップの識別子リスト(visiblePopUpList)に格納された識別子を表示させます。
+    function mapMoveEnd(){
+      var len = visiblePopUpList.length;
+      var popUp = Mfapi.Features.PopUp;
+      if (popUp) {
+        for (var i=0; i<len; i++) {
+          if (!popUp[visiblePopUpList[i]]) continue;
+          popUp[visiblePopUpList[i]].setVisible(true);
+        }
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

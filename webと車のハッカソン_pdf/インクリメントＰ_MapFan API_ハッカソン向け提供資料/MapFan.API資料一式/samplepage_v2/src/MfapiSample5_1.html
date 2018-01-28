@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-1.地図クリック】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 410px;
+      height: 280px;
+    }
+  </style>
+  <!--情報表示DIVのスタイル-->
+  <style type="text/css">
+    #info_window {
+      float: left;
+      width: 245px;
+      height: 280px;
+      background-color:#cccccc;
+      margin-left: 5px;
+    }
+    .divA {
+      padding: 0px;
+      margin: 5px;
+    }
+    .desc {
+      font-size: 12pt;
+      font-family: sans-serif;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    var clickCounter = 0;
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7472311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーとジオメトリーレイヤーを追加します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 地図クリックイベントのコールバック関数を設定します。
+      Mfapi.Events.onMapClick = mapClick;
+
+      // 画面を初期化します。
+      initScreen();
+    }
+
+    //### 地図クリックイベントのコールバック関数 ###
+    function mapClick(screenPosition, mapPosition) {
+
+      clickCounter++;
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(
+          {
+              position : mapPosition
+          }
+          , "markerId" + clickCounter
+      );
+
+      document.getElementById('clickInfoDesc').innerHTML
+        = ('[screenPosition]<br>'
+            + ' x:{x} y:{y}<br>'
+            + '<br>'
+            + '[mapPosition]<br>'
+            + ' 経度:{lon}<br>'
+            + ' 緯度:{lat}<br>'
+            + '<br>'
+          ).replace("{x}", screenPosition.x+"")
+           .replace("{y}", screenPosition.y+"")
+           .replace("{lon}", mapPosition.lon+"")
+           .replace("{lat}", mapPosition.lat+"")
+      ;
+    }
+
+    //### 画面初期化処理 ###
+    function initScreen() {
+      document.getElementById('clickInfoDesc').innerHTML='';
+   }
+
+  </script>
+</head>
+<body>
+  <!--地図描画対象となるDIVタグ-->
+  <div id='sample_map'></div>
+  <!--情報表示DIVタグ-->
+  <div id='info_window'>
+    <div class='divA'>
+      <p class='item1'>
+        <label id='clickInfoDesc' class='desc'></label>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

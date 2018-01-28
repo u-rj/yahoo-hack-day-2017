@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【1-10.地図2画面表示】</title>
+  <!--iframeのスタイル-->
+  <style type="text/css">
+    #map_ja {
+        margin : 0;
+        padding : 0;
+        width: 38%;
+        height: 278px;
+        float : left;
+        border-top : 2px solid #888;
+        border-bottom : 2px solid #888;
+        border-left : 2px solid #888;
+        border-right : 1px solid #888;
+    }
+    #map_en {
+        margin : 0;
+        padding : 0;
+        width: 38%;
+        height: 278px;
+        float : left;
+        border-top : 2px solid #888;
+        border-bottom : 2px solid #888;
+        border-left : 1px solid #888;
+        border-right : 2px solid #888;
+    }
+    #map_ctrl {
+        margin: 0 2px;
+        padding: 0;
+        width: 22%;
+        height: 282px;
+        float : left;
+        border : none;
+        background-color:#eee;
+    }
+    p {
+        font-size:12px;
+    }
+  </style>
+  <script type='text/javascript'>
+
+    // 本サンプルは、iframeを左右2つ作成し、左側のiframeに日本語地図を表示させたHTML、
+    // 右側のiframeに英語地図を表示させたHTMLを指定しています。
+    // 親のHTMLから各iframe内のjs(Mfapi)を直接操作しています。
+    // 親と子(各iframe内のHTML)は、同一ドメイン上に配置する必要があります。
+    // 同一ドメイン上にない場合は、地図の表示やマウス操作は可能ですが、
+    // js(Mfapi)を呼び出すことはできません。
+
+    // 操作識別フラグ（操作中のiframeを判別するためのフラグ）を定義します。
+    var changeCenterFlg = false; // 地図座標変更
+    var changeScaleFlg = false;  // スケール変更
+
+    var counter = 0;      // フィーチャー識別子が重複しないためのカウンター
+
+    //### マーカー追加処理 ###
+    // 中心にマーカー設置ボタンを押下した際に呼ばれます。
+    function setMarker() {
+
+        //### 日本語地図にマーカー設置 ###
+
+        // 日本語地図のiframeのIDを指定し、Mfapi情報を取得します。
+        var Mfapi1 = document.getElementById("map_ja").contentWindow.Mfapi;
+
+        // 日本語地図にレイヤーが存在しない場合は追加します。
+        if (!Mfapi1.Map.MarkerLayer['layer']) {
+            Mfapi1.Map.addMarkerLayer("layer");
+        }
+
+        // 日本語地図のマーカーの作成条件を設定します。
+        var map1markerOpt = {
+          position : Mfapi1.Map.getCenterPosition() // 地図の中心座標
+        };
+
+        // 日本語地図のマーカーレイヤーにマーカーを登録します。
+        Mfapi1.Map.MarkerLayer['layer'].addMarker(map1markerOpt, "map_ja_"+counter);
+
+
+        //### 英語地図にマーカー設置 ###
+
+        // 英語地図のiframeのIDを指定し、Mfapi情報を取得します。
+        var Mfapi2 = document.getElementById("map_en").contentWindow.Mfapi;
+
+        // 英語地図にレイヤーが存在しない場合は追加します。
+        if (!Mfapi2.Map.MarkerLayer['layer']) {
+            Mfapi2.Map.addMarkerLayer("layer");
+        }
+
+        // 英語地図のマーカーの作成条件を設定します。
+        var map2markerOpt = {
+          position : Mfapi2.Map.getCenterPosition() // 地図の中心座標
+        };
+
+        // 英語地図のマーカーレイヤーにマーカーを登録します。
+        Mfapi2.Map.MarkerLayer['layer'].addMarker(map2markerOpt, "map_en_"+counter);
+
+        counter++;
+    }
+
+    //### マーカー表示リセット処理###
+    // マーカーリセットボタンを押した際に呼ばれます。
+    function resetMarker() {
+
+        //### 日本語地図のマーカーリセット ###
+
+        // 日本語地図のiframeのIDを指定し、Mfapi情報を取得します。
+        var Mfapi1 = document.getElementById("map_ja").contentWindow.Mfapi;
+
+        if (Mfapi1.Map.MarkerLayer['layer']) {
+            // 日本語地図からマーカーを表示しているレイヤーを削除します。
+            Mfapi1.Map.MarkerLayer['layer'].removeAll();
+        }
+
+        //### 英語地図のマーカーリセット ###
+
+        // 英語地図のiframeのIDを指定し、Mfapi情報を取得します。
+        var Mfapi2 = document.getElementById("map_en").contentWindow.Mfapi;
+
+        if (Mfapi2.Map.MarkerLayer['layer']) {
+            // 英語地図からマーカーを表示しているレイヤーを削除します。
+            Mfapi2.Map.MarkerLayer['layer'].removeAll();
+        }
+    }
+
+    //### 地図連動処理###
+    // 「地図を連動させる」チェックボックスをON/OFFした際に呼ばれます。
+    function mapLink(checked) {
+
+        //### iframe間での地図連動 ###
+
+        // 日本語地図のiframeのIDを指定し、Mfapi情報を取得します。
+        var Mfapi1 = document.getElementById("map_ja").contentWindow.Mfapi;
+
+        // 英語地図のiframeのIDを指定し、Mfapi情報を取得します。
+        var Mfapi2 = document.getElementById("map_en").contentWindow.Mfapi;
+
+        // 地図座標変更通知イベントを初期化します。
+        Mfapi1.Events.onChangedMapCenter = null;
+        Mfapi2.Events.onChangedMapCenter = null;
+
+        // スケール変更通知イベントを初期化します。
+        Mfapi1.Events.onChangedMapScale = null;
+        Mfapi2.Events.onChangedMapScale = null;
+
+        if (checked) {
+            //「地図を連動させる」チェックボックスがONの場合、iframe間で地図を連動させます。
+
+            // 日本語地図の緯度経度とスケールを英語地図に設定します。
+            Mfapi2.Map.setCenterPosition(Mfapi1.Map.getCenterPosition(), Mfapi1.Map.getMapScale());
+
+            // 日本語地図の地図座標変更通知イベントのコールバック関数を設定します。
+            Mfapi1.Events.onChangedMapCenter = function(mapPosition) {
+
+                if (changeCenterFlg == false) {
+                    // 操作識別フラグをtrueに設定します。
+                    // 英語地図を操作した場合は以下の処理は呼ばれません。
+                    changeCenterFlg = true;
+
+                    // 日本語地図を操作中に以下の処理を行います。
+                    if (mapPosition) {
+                        // 英語地図の中心座標に日本語地図の中心座標を設定します。
+                        Mfapi2.Map.setCenterPosition(mapPosition);
+                    }
+
+                    // 操作識別フラグを初期化します。
+                    changeCenterFlg = false;
+                }
+            };
+
+            // 英語地図の地図座標変更通知イベントのコールバック関数を設定します。
+            Mfapi2.Events.onChangedMapCenter = function(mapPosition) {
+
+                if (changeCenterFlg == false) {
+                    // 操作識別フラグをtrueに設定します。
+                    // 日本語地図を操作した場合は以下の処理は呼ばれません。
+                    iframeIdMapMove = true;
+
+                    // 英語地図を操作中に以下の処理を行います。
+                    if (mapPosition) {
+                        // 日本語地図の中心座標に英語地図の中心座標を設定します。
+                        Mfapi1.Map.setCenterPosition(mapPosition);
+                    }
+
+                    // 操作識別フラグを初期化します。
+                    baseMoveMapFlg = false;
+                }
+            };
+
+            // 日本語地図の地図スケール変更イベントのコールバック関数を設定します。
+            Mfapi1.Events.onChangedMapScale = function(scale) {
+
+                if (changeScaleFlg == false) {
+                    // 操作識別フラグをtrueに設定します。
+                    // 英語地図を操作した場合は以下の処理は呼ばれません。
+                    changeScaleFlg = true;
+
+                    // 日本語地図を操作中に以下の処理を行います。
+                    if (scale) {
+                        // 英語地図の中心座標に日本語地図のスケールを設定します。
+                        Mfapi2.Map.setMapScale(scale);
+                    }
+
+                    // 操作識別フラグを初期化します。
+                    changeScaleFlg = false;
+                }
+            };
+
+            // 英語地図のスケール変更通知イベントのコールバック関数を設定します。
+            Mfapi2.Events.onChangedMapScale = function(scale) {
+
+                if (changeScaleFlg == false) {
+                    // 操作識別フラグをtrueに設定します。
+                    // 日本語地図を操作した場合は以下の処理は呼ばれません。
+                    changeScaleFlg = true;
+
+                    // 英語地図を操作中に以下の処理を行います。
+                    if (scale) {
+                        // 日本語地図の中心座標に英語地図のスケールを設定します。
+                        Mfapi1.Map.setMapScale(scale);
+                    }
+
+                    // 操作識別フラグを初期化します。
+                    changeScaleFlg = false;
+                }
+            };
+        }
+    }
+  </script>
+</head>
+<body>
+    <!-- 地図を表示するHTMLファイルを用意し、iframeを利用して表示します -->
+    <!-- iframeのIDが異なれば、同一のHTMLファイルを指定することも可能です -->
+    <!-- 日本語を表示する地図 -->
+    <iframe src="MfapiSample1_10_ja.html" id="map_ja"></iframe>
+    <!-- 英語を表示する地図 -->
+    <iframe src="MfapiSample1_10_en.html" id="map_en"></iframe>
+    <div id="map_ctrl">
+        <p><input type="checkbox" id="linkage" onchange="mapLink(this.checked)">地図を連動させる</p>
+        <input type="button" id="setmarker" onclick="setMarker()" value="中心にマーカー設置">
+        <input type="button" id="resetmarker" onclick="resetMarker()" value="マーカーリセット">
+    </div>
+</body>
+</html>

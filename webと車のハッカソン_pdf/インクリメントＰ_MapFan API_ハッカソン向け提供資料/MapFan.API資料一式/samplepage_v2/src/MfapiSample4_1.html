@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>Mfapiサンプル【4-1.ルート描画】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 460px;
+      height: 252px;
+      margin: 10px;
+      padding: 0px;
+    }
+  </style>
+  <!--地点リストDIVのスタイル-->
+  <style type="text/css">
+    #list {
+      float: left;
+      margin: 4px;
+      padding: 4px;
+      background-color:#eeeeee;
+    }
+    .item1 {
+      display: block;
+      floet: left;
+      width: 124px;
+      background-color: #aaaaaa;
+      padding: 2px;
+      margin: 2px;
+    }
+  </style>
+  <!--ルート関連のDIVのスタイル-->
+  <style type="text/css">
+    #type_bar {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 262px;
+      left: 2px;
+      width: 646px;
+      height: 26px;
+      background-color:#cccccc;
+    }
+    #loading {
+      margin: 0px;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 100%;
+      height: 100%;
+      z-index: 5000001;
+      visibility : hidden;
+      background-color: rgba(0,0,0,0.2);
+      filter:progid:DXImageTransform.Microsoft.Gradient(
+       GradientType=0,StartColorStr=#22000000,EndColorStr=#22000000);
+    }
+    #loading_title {
+      padding-top: 20px;
+      text-align: center;
+      position: absolute;
+      top: 40px;
+      left:120px;
+      width: 240px;
+      height: 60px;
+      color: black;
+      background-color: white;
+    }
+    .item2 {
+      margin: 3px;
+      float: left;
+    }
+    .item3 {
+      margin: 1px;
+      float: left;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 地点リスト ###
+    var pointData = [
+      { name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+        text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+        imageUrl:'./img/a.gif', width:48, height:48, x:-24, y:-36 },
+      { name: '豊洲配送事業所', lon: 139.7959191978587, lat: 35.655211407306176,
+        text: '<div><b>豊洲配送事業所</b><br>tel 03-XXXX-XXXX</div>',
+        imageUrl:'./img/b.gif', width:48, height:48, x:-24, y:-30  },
+      { name: '有明駅営業所', lon: 139.79315890678254, lat: 35.63467955160454,
+        text: '<div><b>有明駅営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 11:00-21:00</div>',
+        markerType: 1 },
+      { name: '品川営業所', lon: 139.73875357500563, lat: 35.62850770123775,
+        text: '<div><b>品川営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-19:00</div>',
+        markerType: 1 },
+      { name: '渋谷営業所', lon: 139.70134957426947, lat: 35.65864567145413,
+        text: '<div><b>渋谷営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-21:00</div>',
+        markerType: 1 },
+      { name: '新宿営業所', lon: 139.70090283767686, lat: 35.68851826791775,
+        text: '<div><b>新宿営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 ２４時間営業</div>',
+        markerType: 6 }
+    ];
+
+    //### 前操作で選択した地点リストのアイテム番号 ###
+    var prevItemNumber = 0;
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ルートAPIサーバを設定します。
+      Mfapi.routeHost = 'api-route-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7472311841094,35.66119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーとジオメトリーレイヤーを追加します。
+      // ジオメトリーレイヤーは経路描画用です。
+      // マーカーレイヤーは地点マーカーとルートの出発地、経由地、目的地マーカーで共有します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 地点リストをもとにマーカーとポップアップを生成します。
+      for( var i=0; i<pointData.length; i++ ) {
+        var id1 = 'popup#'+i;
+        var opt1 = {
+          size : new Mfapi.Util.ScreenSize(180,80),
+          contentHtml : pointData[i].text,
+          visible : false
+        };
+        Mfapi.Features.createPopUp(opt1, id1);
+        var id2 = 'marker#'+i;
+        var opt2 = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : id1
+        };
+        if( pointData[i].imageUrl !== undefined ) {
+          opt2.imageUrl = pointData[i].imageUrl;
+          opt2.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+          opt2.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+          opt2.imageOpacity = 0.8;
+        } else {
+          opt2.markerType = pointData[i].markerType;
+        }
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(opt2, id2);
+        var text = document.createTextNode(pointData[i].name);
+        var label = document.createElement('label');
+          label.appendChild(text);
+          label.setAttribute('id', 'label#'+i);
+          label.setAttribute('class', 'item1');
+          label.setAttribute('onclick','selectItem(this.id)');
+        var divItem = document.createElement('div');
+          divItem.appendChild(label);
+        var divList = document.getElementById('list');
+          divList.appendChild(divItem);
+      }
+
+      // 検索中画面を表示します。
+      document.getElementById('loading').style.visibility = 'visible';
+
+      // タイプ選択のプルダウンメニューの選択肢を生成します。
+      var polylineTypeOptions = [
+        { name:'グリーン／標準サイズ',   value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_GREEN},
+        { name:'イエロー／標準サイズ',   value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_YELLOW},
+        { name:'ブルー／標準サイズ',     value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_BLUE},
+        { name:'レッド／標準サイズ',     value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_RED},
+        { name:'モノクロ／標準サイズ',   value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_MONOCHROME},
+        { name:'ＲＰＧ風／標準サイズ',   value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_MAP_RPG},
+        { name:'古地図風／標準サイズ',   value:Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_MAP_ANTIQUE},
+        { name:'グリーン／大きいサイズ', value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_COLOR_GREEN},
+        { name:'イエロー／大きいサイズ', value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_COLOR_YELLOW},
+        { name:'ブルー／大きいサイズ',   value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_COLOR_BLUE},
+        { name:'レッド／大きいサイズ',   value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_COLOR_RED},
+        { name:'モノクロ／大きいサイズ', value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_COLOR_MONOCHROME},
+        { name:'ＲＰＧ風／大きいサイズ', value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_MAP_RPG},
+        { name:'古地図風／大きいサイズ', value:Mfapi.Const.DrawPolylineType.BIG_ROUTE_MAP_ANTIQUE}
+      ];
+      for( var i=0; i<polylineTypeOptions.length; i++ ) {
+        var option = document.createElement('option');
+        option.setAttribute('value', polylineTypeOptions[i].value);
+        option.innerHTML = polylineTypeOptions[i].name;
+        document.getElementById('select_polyline_type').appendChild(option);
+      }
+      var markerTypeOptions = [
+        { name:'標準デザイン／標準サイズ',   value:Mfapi.Const.DrawMarkerType.STANDARD_ROUTE},
+        { name:'標準デザイン／大きいサイズ', value:Mfapi.Const.DrawMarkerType.BIG_ROUTE},
+        { name:'ＲＰＧ風／標準サイズ',       value:Mfapi.Const.DrawMarkerType.STANDARD_ROUTE_MAP_RPG},
+        { name:'ＲＰＧ風／大きいサイズ',     value:Mfapi.Const.DrawMarkerType.BIG_ROUTE_MAP_RPG},
+        { name:'古地図風／標準サイズ',       value:Mfapi.Const.DrawMarkerType.STANDARD_ROUTE_MAP_ANTIQUE},
+        { name:'古地図風／大きいサイズ',     value:Mfapi.Const.DrawMarkerType.BIG_ROUTE_MAP_ANTIQUE}
+      ];
+      for( var i=0; i<markerTypeOptions.length; i++ ) {
+        var option = document.createElement('option');
+        option.setAttribute('value', markerTypeOptions[i].value);
+        option.innerHTML = markerTypeOptions[i].name;
+        document.getElementById('select_marker_type').appendChild(option);
+      }
+
+      // タイプ選択の選択状態を初期化します。
+      document.getElementById('select_polyline_type').selectedIndex = 0;
+      document.getElementById('select_marker_type').selectedIndex = 0;
+
+      //### ルート検索条件"optCalc"の作成 ###
+      // 本サンプルでは、７件ある地点リストのうち、１番目を出発地、２番目～６番目を経由地、
+      // ７番目を目的地として設定します。なお、経由地は配列に格納してから設定します。
+      var viaPoints = [];
+      for(var loop=0; loop<pointData.length-2; loop++)
+        viaPoints[loop] = new Mfapi.Util.LonLat(pointData[loop+1].lon,pointData[loop+1].lat);
+      var optCalc = {
+        start : new Mfapi.Util.LonLat(pointData[0].lon,pointData[0].lat),
+        via : viaPoints,
+        destination : new Mfapi.Util.LonLat(pointData[pointData.length-1].lon,pointData[pointData.length-1].lat)
+      };
+
+      //### 経路描画条件"optDraw"の作成 ###
+      // 経路(ルートのポリライン)描画用のレイヤーIDと、出発地、目的地、経由地のマーカーを
+      // 表示用のレイヤーIDを指定します。ここでは各描画タイプの指定を省略しているため、デフォルト
+      // の描画タイプが適用されます。
+      var optDraw = {
+        geometryLayerId : 'gLayer',
+        markerLayerId : 'mLayer'
+      };
+
+      //### ルート検索＆描画要求のメソッド実行 ###
+      Mfapi.Route.requestRouteCalcAndDraw('route_sample',optCalc,optDraw,route_calc_and_draw_completed);
+    }
+
+    //### アイテム選択時の処理 ###
+    function selectItem(id) {
+      document.getElementById('label#'+prevItemNumber).style.backgroundColor = '#aaaaaa';
+      Mfapi.Features.PopUp['popup#'+prevItemNumber].setVisible(false);
+      document.getElementById(id).style.backgroundColor = '#ff0000';
+      var itemNumber = parseInt(id.substr(6)); // 先頭６文字'label#'を除いた文字列を整数化
+      Mfapi.Features.PopUp['popup#'+itemNumber].setVisible(true);
+      var center = new Mfapi.Util.LonLat(pointData[itemNumber].lon, pointData[itemNumber].lat);
+      Mfapi.Map.setCenterPosition(center);
+      prevItemNumber = itemNumber;
+    }
+
+    //### ルート検索＆描画終了時の処理 ###
+    // ルート検索＆経路描画処理終了時に実行します。
+    // 検索中画面を表示OFFにします。また、ルート検索に失敗した場合、エラーを警告画面にて表示します。
+    function route_calc_and_draw_completed(result_routeId) {
+
+      // 検索中画面の非表示にします。
+      document.getElementById('loading').style.visibility = 'hidden';
+
+      // エラー判定と警告表示を行います。
+      if(Mfapi.Route.RteInfo[result_routeId].calcData.status != 'success' ) {
+        window.alert("ルート検索に失敗しました。\n" + Mfapi.Route.RteInfo[result_routeId].calcData.status);
+      }
+    }
+
+    //### ルート再描画処理 ###
+    // プルダウンメニューのタイプ選択の状態が変化したときに実行します。
+    // 選択した各描画タイプをもとに描画データを再作成します。
+    function doRedraw() {
+
+      //### ルートデータ(検索結果のデータ)の存在確認 ###
+      // 存在しない場合は処理を中止します。
+      if(!Mfapi.Route.isUsed('route_sample')) return;
+      if(Mfapi.Route.RteInfo['route_sample'].calcData == null ) return;
+
+      //### 描画データの削除 ###
+      Mfapi.Route.removeRteDrawObjects('route_sample');
+
+      //### 経路描画条件"optDraw"の作成 ###
+      // 各レイヤーIDの指定に加え、ユーザがプルダウンメニューで選択した各描画タイプを指定します。
+      var optDraw = {
+        geometryLayerId : 'gLayer',
+        markerLayerId : 'mLayer',
+        drawPolylineType : document.getElementById('select_polyline_type').value,
+        drawMarkerType : document.getElementById('select_marker_type').value
+      };
+
+      //### 経路描画要求のメソッド実行 ###
+      // 本メソッド終了後の処理は特に無いため、コールバック関数の指定は省略します。
+      Mfapi.Route.requestRouteDraw('route_sample',optDraw);
+    }
+
+  </script>
+</head>
+<body>
+  <!--地図描画対象となるDIVタグ-->
+  <div id='sample_map'></div>
+  <!--地点リストDIVタグ-->
+  <div id='list'></div>
+  <!--タイプ設定バーDIVタグ-->
+  <div id='type_bar'>
+    <label class="item2">ポリライン：</label>
+    <form class="item3"><select id="select_polyline_type" onchange="doRedraw()"></select></form>
+    <label class="item2">マーカー：</label>
+    <form class="item3"><select id="select_marker_type" onchange="doRedraw()"></select></form>
+  </div>
+  <!--検索中画面DIVタグ-->
+  <div id="loading">
+    <div id="loading_title">ルート検索＆描画処理中<img src="img/loader.gif"></img></div>
+  </div>
+</body>
+</html>

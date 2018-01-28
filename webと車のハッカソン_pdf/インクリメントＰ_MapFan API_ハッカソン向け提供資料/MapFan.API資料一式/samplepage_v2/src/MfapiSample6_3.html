@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【6-3.地図領域サイズ・緯度経度取得】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+  #sample_map {
+    width: 660px;
+    height: 280px;
+  }
+  </style>
+  <!--幅、高さ、座標を表示するDIVのスタイル-->
+  <style type="text/css">
+  .DivInfoLabelClass {
+    font-family: monospace;
+    font-size: 10pt;
+    background-color: #e0e0e0;
+    border: 1px solid #c0c0c0;
+    padding: 5px;
+  }
+  .DivInfoLabelClass pre {
+    margin: 0px;
+    font-family: "ＭＳ ゴシック", monospace;
+    font-size: 10pt;
+    line-height: 10pt;
+  }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    var mapId = 'sample_map';
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        scalerShown : false,
+        zoomButtonShown : false,
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate(mapId,options);
+
+      // 各種イベントのコールバック関数を設定します。
+      Mfapi.Events.onChangedMapScale = changedHandler;
+      Mfapi.Events.onMapMoveEnd = changedHandler;
+
+      // 地図領域サイズ、緯度経度を表示するラベルを追加します。
+      createLabelElements();
+
+      // 初期表示処理を行います。
+      changedHandler();
+    }
+
+    //### 幅、高さ、四隅の座標を表示するラベル作成処理 ###
+    function createLabelElements() {
+      var divMap = document.getElementById(mapId);
+
+      // 中央に地図領域サイズを表示するラベルを配置します。
+      (function() {
+        var ele = document.createElement('div');
+        var eleSize = {w: 60, h: 25};
+        ele.id = 'divMapSizeLabel';
+        ele.className = 'DivInfoLabelClass';
+        ele.style.position = 'absolute';
+        ele.style.width = eleSize.w + 'px';
+        ele.style.height = eleSize.h + 'px';
+        ele.style.left = Math.round(divMap.clientWidth / 2 - eleSize.w / 2) + 'px';
+        ele.style.top = Math.round(divMap.clientHeight / 2 - eleSize.h / 2) + 'px';
+        divMap.appendChild(ele);
+      })();
+
+      // 四隅に緯度経度を表示するラベルを配置します。
+      eleLonLatDivs = [
+        {
+           id: "divTopLeftLabel",
+           top:"10px",
+           left:"10px",
+        },
+        {
+           id: "divTopRightLabel",
+           top:"10px",
+           left:(divMap.clientWidth-180)+"px",
+        },
+        {
+           id: "divBottomRightLabel",
+           top:(divMap.clientHeight-65)+"px",
+           left:(divMap.clientWidth-180)+"px",
+        },
+        {
+           id: "divBottomLeftLabel",
+           top:(divMap.clientHeight-65)+"px",
+           left:"10px",
+        },
+      ];
+      eleLonLatDivs.forEach(function(eleLonLatDiv){
+        var ele = document.createElement('div');
+        var eleSize = {w: 170, h: 40};
+        ele.id = eleLonLatDiv.id;
+        ele.className = 'DivInfoLabelClass';
+        ele.style.position = 'absolute';
+        ele.style.width = eleSize.w + 'px';
+        ele.style.height = eleSize.h + 'px';
+        ele.style.left = eleLonLatDiv.left;
+        ele.style.top = eleLonLatDiv.top;
+        divMap.appendChild(ele);
+      });
+
+    }
+
+    //### 地図縮尺変更、地図移動イベントのコールバック関数 ###
+    function changedHandler() {
+        // 地図サイズを取得します。
+        var mapW = document.getElementById(mapId).clientWidth;
+        var mapH = document.getElementById(mapId).clientHeight;
+
+        // 地図の矩形を取得します。(ピクセル位置)
+        var topLeft = new Mfapi.Util.ScreenPoint(0, 0);
+        var bottomRight = new Mfapi.Util.ScreenPoint(mapW, mapH);
+
+        // 緯度経度を取得します。
+        var lonlatTopLeft = Mfapi.Map.getLonLatFromScreenPosition(topLeft);
+        var lonlatBottomRight = Mfapi.Map.getLonLatFromScreenPosition(bottomRight);
+
+        // ラベルに出力します。
+        document.getElementById('divMapSizeLabel').innerHTML
+            = '<pre>幅:{w}\n高さ:{h}</pre>'
+              .replace('{w}', mapW)
+              .replace('{h}', mapH)
+        ;
+
+        document.getElementById('divTopLeftLabel').innerHTML
+            = '<pre>左上:\n経度:{lon}\n緯度:{lat}</pre>'
+              .replace('{lon}', lonlatTopLeft.lon)
+              .replace('{lat}', lonlatTopLeft.lat)
+        ;
+        document.getElementById('divTopRightLabel').innerHTML
+            = '<pre>右上:\n経度:{lon}\n緯度:{lat}</pre>'
+              .replace('{lon}', lonlatBottomRight.lon)
+              .replace('{lat}', lonlatTopLeft.lat)
+        ;
+        document.getElementById('divBottomRightLabel').innerHTML
+            = '<pre>右下:\n経度:{lon}\n緯度:{lat}</pre>'
+              .replace('{lon}', lonlatBottomRight.lon)
+              .replace('{lat}', lonlatBottomRight.lat)
+        ;
+        document.getElementById('divBottomLeftLabel').innerHTML
+            = '<pre>左下:\n経度:{lon}\n緯度:{lat}</pre>'
+              .replace('{lon}', lonlatTopLeft.lon)
+              .replace('{lat}', lonlatBottomRight.lat)
+        ;
+
+    }
+
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【6-2.現在地住所表示】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 480px;
+      height: 280px;
+      margin: 5px;
+      padding: 0px;
+      outline: none;
+    }
+  </style>
+  <!--情報表示DIVのスタイル-->
+  <style type="text/css">
+    #info {
+      float: left;
+      margin: 2px;
+      padding: 4px;
+      background-color:#eeeeee;
+    }
+    .value1 {
+      width: 130px;
+    }
+    .value2 {
+      width: 36px;
+    }
+  </style>
+  <!--地図中心を示すパーツのアイコン画像とDIVのスタイル-->
+  <style type="text/css">
+    #center_image {
+      width: 34px;
+      height: 30px;
+    }
+    #center_div {
+      position: absolute;
+      z-index: 5000000;
+      left: 233px;
+      top: 135px;
+      pointer-events: none;
+    }
+  </style>
+  <!--住所情報表示DIVのスタイル-->
+  <style type="text/css">
+    #address_info {
+      position: absolute;
+      z-index: 5000000;
+      left: 80px;
+      top: 245px;
+      width: 260px;
+      height: 18px;
+    }
+    .value3 {
+      width: 250px;
+      background-color: #eeeeee;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 検索サーバーのホスト名 ###
+    var srchHost = 'api-srch-pre.mapfan.com';
+
+    //### 最新のAPI要求受付時刻 ###
+    // 住所逆引きAPI実行要求を受け付けた最新の時刻が上書きで記録されます。
+    var latestReqTime = 0;
+
+    //### 最新のAPI要求受付緯度経度 ###
+    // 住所逆引きAPI実行要求を受け付けた最新の緯度経度が上書きで記録されます。
+    var latestReqPosition = new Mfapi.Util.LonLat(0,0);
+
+    //### API要求キュー配列 ###
+    // 住所逆引きAPI実行要求を受け付けると、緯度、経度、要求受付時刻のプロパティからなるオブジェクト
+    // を追加します。
+    // 住所逆引きAPIの実行が開始されると、該当オブジェクトを削除します。
+    var queArray = [];
+
+    //### API実行対象の要求受付時刻 ###
+    // 住所逆引きAPI実行中は、同API実行要求の受け付け時刻が格納されます。
+    // 住所逆引きAPIが実行していないときは、0が格納されます。
+    var apiTargetReqTime = 0;
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 12
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // 各種イベントのコールバック関数を設定します。
+      Mfapi.Events.onChangedMapCenter = map_position_event;
+      Mfapi.Events.onChangedMapScale = map_scale_event;
+
+      // 初期表示処理を行います。
+      var scale = Mfapi.Map.getMapScale();
+      var position = Mfapi.Map.getCenterPosition();
+      document.getElementById('scale').value = scale;
+      document.getElementById('lon').value = position.lon;
+      document.getElementById('lat').value = position.lat;
+      document.getElementById('key-ctrl').value = 'off';
+      document.getElementById('address').value = '';
+    }
+
+    //### 地図onfocusイベントハンドラー ###
+    // 地図のDIVにフォーカスされたときに呼ばれます。
+    function onMapFocus() {
+      document.getElementById('key-ctrl').value = 'on';
+    }
+    //### 地図onblurイベントハンドラー ###
+    // 地図のDIVからフォーカスが外れたときに呼ばれます。
+    function onMapBlur() {
+      document.getElementById('key-ctrl').value = 'off';
+    }
+
+    //### 地図縮尺変更イベントのコールバック関数 ###
+    function map_scale_event(scale) {
+      document.getElementById('scale').value = scale;
+    }
+
+    //### 地図中心緯度経度変更イベントのコールバック関数 ###
+    function map_position_event(position) {
+
+      document.getElementById('lon').value = position.lon;
+      document.getElementById('lat').value = position.lat;
+
+      // 地図移動チェック処理のタイマーを設定します。
+      var method = "checkMoving("+position.lon+","+position.lat+");";
+      window.setTimeout(method, 100);
+    }
+
+    //### 地図移動チェック処理 ###
+    // 地図移動イベントから0.1秒後に呼ばれます。
+    // 地図移動が停止していることを確認したら、API要求処理を実行します。
+    function checkMoving(prevPositionLon,prevPositionLat) {
+
+      // 現在の地図中心緯度経度を取得します。
+      var currentPosition = Mfapi.Map.getCenterPosition();
+
+      // 地図移動イベントがあったときの緯度経度と現在の緯度経度が異なる場合、移動中と判断します。
+      // 移動中と判断した場合、本処理を中止します。(＝移動していないと判断されると、後続のAPI要求処理を実行します。)
+      if( prevPositionLon != currentPosition.lon || prevPositionLat != currentPosition.lat)
+        return;
+
+      // 最新のAPI要求を受け付けた緯度経度と、現時点の地図中心点緯度経度とを照合します。
+      // 前回と同じ要求の場合は、本処理を中止します。
+      if( latestReqPosition.lon == currentPosition.lon && latestReqPosition.lat == currentPosition.lat)
+        return;
+
+      // 最新のAPI要求を受け付けた時刻を更新します。
+      var currentDate = new Date();
+      latestReqTime = currentDate.valueOf();
+
+      // 最新のAPI要求を受け付けた緯度経度を更新します。
+      latestReqPosition = currentPosition;
+
+      // キューの最後に緯度経度と要求時刻を入れたデータを追加します。
+      var queData = { lon:latestReqPosition.lon, lat:latestReqPosition.lat, reqTime:latestReqTime };
+      queArray.push(queData);
+
+      // API実行を要求します。
+      requestAPI();
+    }
+
+    //### API要求処理 ###
+    // API要求受付時か、APIが完了後もキューがたまっている場合に呼ばれます。
+    // APIが実行中でないときのみ、JSONPスクリプトを作成して、APIを実行します。
+    function requestAPI() {
+
+      // API実行中の場合、この先の処理を実施しません。
+      if(apiTargetReqTime!=0) return;
+
+      // キューがたまっていない場合、この先の処理を実施しません。
+      // (通常、この関数が呼ばれるとき、キューは１件以上ありますが、異常時の対応のために実施します)
+      if(queArray.length==0) return;
+
+      // キューにたまっている一番古い(先頭の)データを取得し削除します。
+      var queData = queArray.shift();
+
+      // APIターゲットの要求受付時刻を設定します。
+      apiTargetReqTime = queData.reqTime;
+
+      // API要求のURLを作成します。
+      var apiname = '/v1/addrname';
+      var param1 = 'key=' + encodeURIComponent(Mfapi.getAuthAccessKey());
+      var param2 = 'lonlat='+queData.lon+","+queData.lat;
+      var param3 = 'callback=addressWrite';
+      var protocol = window.location.protocol;
+      if( protocol != 'https:' ) protocol = 'http:';
+      var reqUrl = protocol + '//' + srchHost + apiname + '?' + param1 + '&' + param2 + '&' + param3;
+
+      // APIを実行します。(JSONPのスクリプト作成)
+      var scrpJsonp = document.createElement('script');
+      scrpJsonp.setAttribute('type', 'text/javascript');
+      scrpJsonp.setAttribute('charset', 'utf-8');
+      scrpJsonp.setAttribute('id', 'addr'+apiTargetReqTime);
+      scrpJsonp.setAttribute('src', reqUrl);
+      var head = document.getElementsByTagName('head').item(0);
+      head.appendChild(scrpJsonp);
+    }
+
+    //### 住所検索逆引きAPIのコールバック関数 ###
+    // 現在地表示を更新して、JSONPのスクリプトタグを削除します。
+    function addressWrite(data) {
+
+      // 現在地表示を更新します。
+      // APIターゲットの要求受付時刻が、要求受付時刻のときのみ表示を更新します。
+      if(apiTargetReqTime == latestReqTime) {
+        if( data.status == 'success' ) {
+          document.getElementById('address').value = data.address;
+        } else if ( data.status.slice(0,8) == '[I00001]' ) {
+          document.getElementById('address').value = '（住所データがありません）';
+        } else {
+          document.getElementById('address').value = 'エラー '+data.status;
+        }
+      }
+
+      // JSONPスクリプトタグを削除します。
+      var head = document.getElementsByTagName('head').item(0);
+      if(document.getElementById('addr'+apiTargetReqTime)!=null) {
+        head.removeChild(document.getElementById('addr'+apiTargetReqTime));
+      }
+
+      // APIターゲットの要求受付時刻をリセットします。
+      apiTargetReqTime=0;
+
+      // キューにリクエストがたまっている場合、API要求処理を呼び出します。
+      if(queArray.length>0)
+        requestAPI();
+    }
+
+  </script>
+</head>
+<body>
+  <!--
+      地図DIVタグ：地図画面にフォーカスがあたるようにtabindexを追記しています。
+      フォーカスされたイベント「focus」、「focusin」と
+      フォーカスが外れたイベント「blur」、「focusout」の
+      両方を指定しているためブラウザによっては２回イベントが発生します。
+  -->
+  <div id='sample_map' tabindex='1' onfocus='onMapFocus();' onfocusin='onMapFocus();' onblur='onMapBlur();' onfocusout='onMapBlur();'></div>
+  <!--情報表示DIVタグ-->
+  <div id='info'>
+    <p>経度(longitude)：<br>
+      <input type='text' id='lon' class='value1' tabindex='2' readonly></input></p>
+    <p>緯度(latitude)：<br>
+      <input type='text' id='lat' class='value1' tabindex='3' readonly></input></p>
+    <p>スケール：
+      <input type='text' id='scale' class='value2' tabindex='4' readonly></input></p>
+    <p>フォーカス：
+      <input type='text' id='key-ctrl' class='value2' tabindex='5' readonly></input></p>
+  </div>
+  <!--地図中心を示すパーツのDIVタグ-->
+  <div id='center_div'><img id='center_image' src='img/center.png'></div>
+  <!--住所情報表示DIVタグ-->
+  <div id='address_info'>
+    <p><input type='text' id='address' class='value3' readonly></input></p>
+  </div>
+</body>
+</html>

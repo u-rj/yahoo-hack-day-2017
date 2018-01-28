@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【4-3.ルート検索条件設定】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 380px;
+      height: 256px;
+    }
+    #center_image {
+      width: 34px;
+      height: 30px;
+    }
+    #center_div {
+      z-index: 5000000;
+      position: absolute;
+      left: 177px;
+      top: 117px;
+      pointer-events: none;
+    }
+  </style>
+  <!--ルート関連のDIVのスタイル-->
+  <style type="text/css">
+    #positions_bar {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 264px;
+      left: 0px;
+      width: 380px;
+      height: 24px;
+      background-color:#cccccc;
+    }
+    #info_window {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 2px;
+      left: 390px;
+      width: 218px;
+      height: 256px;
+      background-color:#cccccc;
+    }
+    #operation_bar {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 264px;
+      left: 390px;
+      width: 218px;
+      height: 24px;
+      background-color:#cccccc;
+    }
+    #loading {
+      margin: 0px;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 100%;
+      height: 100%;
+      z-index: 5000001;
+      visibility : hidden;
+      background-color: rgba(0,0,0,0.2);
+      filter:progid:DXImageTransform.Microsoft.Gradient(
+       GradientType=0,StartColorStr=#22000000,EndColorStr=#22000000);
+    }
+    #loading_title {
+      padding-top: 20px;
+      text-align: center;
+      position: absolute;
+      top: 40px;
+      left:120px;
+      width: 240px;
+      height: 60px;
+      color: black;
+      background-color: white;
+    }
+    .info_box {
+      padding: 2px;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 214px;
+      height: 252px;
+      background-color:#dddddd;
+    }
+    .item1 {
+      padding: 2px;
+    }
+    .item2 {
+      margin-left: 2px;
+      float: left;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ルートAPIサーバを設定します。
+      Mfapi.routeHost = 'api-route-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7472311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーとジオメトリーレイヤーを追加します。
+      // ケース１，２，３それぞれで別のジオメトリーレイヤーを追加します。
+      // ケース１→２→３の優先順位で表示するように、3→2→1の順番で登録します。
+      Mfapi.Map.addGeometryLayer('gLayer3');
+      Mfapi.Map.addGeometryLayer('gLayer2');
+      Mfapi.Map.addGeometryLayer('gLayer1');
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 初期表示処理を行います。
+      initScreen();
+    }
+
+    //### 出発地、目的地設定処理 ###
+    function setPoint(type) {
+      if(type=='s')
+        createPointMarker('start_marker',0);
+      else if(type=='d')
+        createPointMarker('destination_marker',50);
+    }
+
+    //### ルート検索＆描画要求処理 ###
+    // 検索実行ボタンを押したときに実行します。
+    // ３つの条件の処理を以下の流れで実施します。
+    //   ①doCalcAndDraw()：ケース１の検索＆描画要求
+    //   ②route_calc_and_draw_completed1()：ケース２の検索＆描画要求
+    //   ③route_calc_and_draw_completed2()：ケース３の検索＆描画要求
+    //   ④route_calc_and_draw_completed3()：経路表示ON-OFF操作画面の表示
+    // ※３ケース同時にルート検索＆描画要求処理メソッドを実行すると、非同期に処理され、描画の
+    // 　実行順が不定になります。
+    // 　ここでは、標準のケース１が一番最初に表示されるように、上記処理の流れで実行しています。
+    function doCalcAndDraw() {
+
+      // 各種ボタンのアクティブ制御をおこないます。
+      document.getElementById('calc').disabled=true;
+      document.getElementById('back').disabled=true;
+      document.getElementById('start').disabled=true;
+      document.getElementById('destination').disabled=true;
+
+      // 出発地、目的地の設定チェックを行います。
+      if( Mfapi.Features.getObjectType('start_marker') == -1 ) {
+        window.alert("出発地が設定されていません。");
+        document.getElementById('calc').disabled=false;
+        document.getElementById('back').disabled=true;
+        document.getElementById('start').disabled=false;
+        document.getElementById('destination').disabled=false;
+        return;
+      }
+      if( Mfapi.Features.getObjectType('destination_marker') == -1 ) {
+        window.alert("目的地が設定されていません。");
+        document.getElementById('calc').disabled=false;
+        document.getElementById('back').disabled=true;
+        document.getElementById('start').disabled=false;
+        document.getElementById('destination').disabled=false;
+        return;
+      }
+
+      // リセットボタンを非アクティブにします。
+      document.getElementById('reset').disabled=true;
+
+      // 検索中画面を表示します。
+      document.getElementById('loading').style.visibility = 'visible';
+
+      //### ケース１：ルート検索条件"optCalc"の作成 ###
+      // 条件：検索優先条件=標準、有料道路使用条件=標準
+      var optCalc = {
+        start : Mfapi.Features.Marker['start_marker'].getPosition(),
+        destination : Mfapi.Features.Marker['destination_marker'].getPosition(),
+        priority : 0,
+        tollway : 0
+      };
+
+      //### ケース１：経路描画条件"optDraw"の作成 ###
+      // 条件：レイヤー'gLayer1'、ポリラインタイプ設定=グリーン
+      var optDraw = {
+        geometryLayerId : 'gLayer1',
+        drawPolylineType : Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_GREEN
+      };
+
+      //### ケース１：ルート検索＆経路描画要求のメソッド実行 ###
+      Mfapi.Route.requestRouteCalcAndDraw('route-1',optCalc,optDraw,route_calc_and_draw_completed1);
+    }
+
+    //### ケース１：ルート検索＆経路描画終了時の処理 ###
+    function route_calc_and_draw_completed1(result_routeId) {
+
+      //### ケース２：ルート検索条件"optCalc"の作成 ###
+      // 条件：検索優先条件=標準、有料道路使用条件=優先
+      var optCalc = {
+        start : Mfapi.Features.Marker['start_marker'].getPosition(),
+        destination : Mfapi.Features.Marker['destination_marker'].getPosition(),
+        priority : 0,
+        tollway : 1
+      };
+
+      //### ケース２：経路描画条件"optDraw"の作成 ###
+      // 条件：レイヤー'gLayer2'、ポリラインタイプ設定=イエロー
+      var optDraw = {
+        geometryLayerId : 'gLayer2',
+        drawPolylineType : Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_YELLOW
+      };
+
+      //### ケース２：ルート検索＆経路描画要求のメソッド実行 ###
+      Mfapi.Route.requestRouteCalcAndDraw('route-2',optCalc,optDraw,route_calc_and_draw_completed2);
+    }
+
+    //### ケース２：ルート検索＆経路描画終了時の処理 ###
+    function route_calc_and_draw_completed2(result_routeId) {
+
+      //### ケース３：ルート検索条件"optCalc"の作成 ###
+      // 条件：検索優先条件=標準、有料道路使用条件=優先
+      var optCalc = {
+        start : Mfapi.Features.Marker['start_marker'].getPosition(),
+        destination : Mfapi.Features.Marker['destination_marker'].getPosition(),
+        priority : 1,
+        tollway : 0
+      };
+
+      //### ケース３：経路描画条件"optDraw"の作成 ###
+      // 条件：レイヤー'gLayer3'、ポリラインタイプ設定=ブルー
+      var optDraw = {
+        geometryLayerId : 'gLayer3',
+        drawPolylineType :  Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_BLUE
+      };
+
+      //### ケース３：ルート検索＆経路描画要求のメソッド実行 ###
+      Mfapi.Route.requestRouteCalcAndDraw('route-3',optCalc,optDraw,route_calc_and_draw_completed3);
+    }
+
+    //### ケース３：ルート検索＆経路描画終了時の処理 ###
+    function route_calc_and_draw_completed3(result_routeId) {
+
+      //### 情報窓：経路表示ON-OFF操作画面表示 ###
+      document.getElementById('explain').style.visibility = 'hidden';
+      document.getElementById('visibility_ctrl').style.visibility = 'visible';
+      document.getElementById('cond1').checked='checked';
+      document.getElementById('cond2').checked='checked';
+      document.getElementById('cond3').checked='checked';
+
+      // 検索中画面を非表示にします。
+      document.getElementById('loading').style.visibility = 'hidden';
+
+      // 戻るボタンをアクティブにします。
+      document.getElementById('back').disabled=false;
+
+      // リセットボタンをアクティブにします。
+      document.getElementById('reset').disabled=false;
+    }
+
+    //### 戻るボタンの処理 ###
+    function doBack() {
+
+      // ルートデータを全件削除します。
+      Mfapi.Route.removeAllRteInfo();
+
+      // 情報窓に説明文を表示します。
+      document.getElementById('explain').style.visibility = 'visible';
+      document.getElementById('visibility_ctrl').style.visibility = 'hidden';
+
+      // 各種ボタンのアクティブ制御を行います。
+      document.getElementById('back').disabled=true;
+      document.getElementById('calc').disabled=false;
+      document.getElementById('start').disabled=false;
+      document.getElementById('destination').disabled=false;
+    }
+
+    //### リセットボタンの処理 ###
+    function doReset() {
+
+      // ルートデータを全件削除します。
+      Mfapi.Route.removeAllRteInfo();
+
+      // 出発地、目的地のマーカーを削除します。
+      if( Mfapi.Features.getObjectType('start_marker') != -1 ) {
+        Mfapi.Features.remove('start_marker');
+      }
+      if( Mfapi.Features.getObjectType('destination_marker') != -1 ) {
+        Mfapi.Features.remove('destination_marker');
+      }
+
+      // 画面を初期化します。
+      initScreen();
+    }
+
+    //### 経路ポリライン表示状態切り替え時の処理 ###
+    // 情報窓の各ケースのチェックボックスの状態が変更されたときに実行します。
+    function changeVisibility(elem,route_id) {
+      // 該当ルートの表示条件に反映します。
+      Mfapi.Route.setVisible(route_id, elem.checked);
+    }
+
+    //### 画面初期化処理 ###
+    function initScreen() {
+
+      // 初期時は説明文を表示します。
+      document.getElementById('explain').style.visibility = 'visible';
+      document.getElementById('visibility_ctrl').style.visibility = 'hidden';
+
+      // 戻るボタン以外をアクティブにします。(リセットボタンは常時アクティブのままとなります。)
+      document.getElementById('start').disabled=false;
+      document.getElementById('destination').disabled=false;
+      document.getElementById('calc').disabled=false;
+      document.getElementById('back').disabled=true;
+      document.getElementById('reset').disabled=false;
+
+      // 検索中画面を非表示にします。
+      document.getElementById('loading').style.visibility = 'hidden';
+   }
+
+    //### DIVタグのリセット処理 ###
+    function recretateDiv(targetId,parentId) {
+      var div = document.getElementById(targetId);
+      if( div )
+        document.getElementById(parentId).removeChild(div);
+      var new_div = document.createElement('div');
+      new_div.setAttribute('id', targetId);
+      document.getElementById(parentId).appendChild(new_div);
+    }
+
+    //### 地点マーカー作成処理 ###
+    function createPointMarker(marker_id,cx) {
+      if( Mfapi.Features.getObjectType(marker_id) != -1 )
+        Mfapi.Features.remove(marker_id);
+      var optMarker = {
+        position: Mfapi.Map.getCenterPosition(),
+        imageUrl: './img/route_points.png',
+        cuttingPoint: { x: cx, y: 0 },
+        imageSize : { width: 50, height: 50 },
+        imageOffset : { x: -25, y: -49 }
+      };
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(optMarker,marker_id);
+    }
+
+    //### ラベル追加汎用処理 ###
+    function addLabel(parentId,text,css_class,id,move) {
+      var textNode = document.createTextNode(text);
+      var label = document.createElement('label');
+      label.appendChild(textNode);
+      if(css_class!='')
+        label.setAttribute('class', css_class);
+      if(id!=null) {
+        if(id!='')
+          label.setAttribute('id', id);
+      }
+      var div = document.createElement('div');
+      if(move!=null) {
+        label.setAttribute('onclick','moveMap('+move.lon+','+move.lat+',this)');
+      }
+      div.appendChild(label);
+      document.getElementById(parentId).appendChild(div);
+    }
+
+  </script>
+</head>
+<body>
+  <!--地図描画対象となるDIVタグ-->
+  <div id='sample_map'></div>
+  <!--地図中心を示すパーツのDIVタグ-->
+  <div id='center_div'><img id='center_image' src='img/center.png'></div>
+  <!--条件設定バーDIVタグ-->
+  <div id='positions_bar'>
+    <input type="button" class="item2" value="出発地設定" id="start" onclick="setPoint('s');">
+    <input type="button" class="item2" value="目的地設定" id="destination" onclick="setPoint('d');">
+  </div>
+  <!--情報窓DIVタグ-->
+  <div id='info_window'>
+    <div id='explain' class="info_box">
+      <label>出発地、目的地を設定したら、検索実行ボタンを押してください。</label>
+    </div>
+    <div id='visibility_ctrl' class="info_box">
+      <table>
+        <tr><th colspan="4">ルート検索結果：</th></tr>
+        <tr><td><input type="checkbox" id="cond1" onclick="changeVisibility(this,'route-1')"></td>
+          <td>①</td><td><img src="img/green_line.png"></td><td>標準</td></tr>
+        <tr><td><input type="checkbox" id="cond2" onclick="changeVisibility(this,'route-2')"></td>
+          <td>②</td><td><img src="img/yellow_line.png"></td><td>有料道路優先</td></tr>
+        <tr><td><input type="checkbox" id="cond3" onclick="changeVisibility(this,'route-3')"></td>
+          <td>③</td><td><img src="img/blue_line.png"></td><td>距離優先</td></tr>
+      </table>
+    </div>
+  </div>
+  <!--操作バーDIVタグ-->
+  <div id='operation_bar'>
+    <input type="button" class="item2" value="検索実行" id="calc" onclick="doCalcAndDraw();">
+    <input type="button" class="item2" value="戻る" id="back" onclick="doBack();">
+    <input type="button" class="item2" value="リセット" id="reset" onclick="doReset();">
+  </div>
+  <!--検索中画面DIVタグ-->
+  <div id="loading">
+    <div id="loading_title">ルート検索＆描画処理中<img src="img/loader.gif"></img></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-7.マウスクリックでポリライン作成】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### レイヤー作成処理 ###
+      // ポリラインを表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+      // マーカーを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // 地図クリック通知イベントにコールバック関数を設定します。
+      Mfapi.Events.onMapClick = onMapClickFunc;
+    }
+
+    var counter = 0;                 // フィーチャー識別子を一意にするためのカウンター
+    var beforerClickMapPos;          // クリックした緯度経度を保持する変数
+    var polylineId = "polyline";     // ポリラインのフィーチャー識別子
+
+    //### 地図クリックイベントのコールバック関数 ###
+    function onMapClickFunc (screenPos, mapPos) {
+
+      var popUpId = 'pop_'+counter;         // ポップアップのフィーチャー識別子
+      var markerId = 'marker_'+counter;     // マーカーのフィーチャー識別子
+      var polylineId = "polyline";          // ポリラインのフィーチャー識別子
+
+      //### ポップアップ作成処理 ###
+
+      // ポップアップの作成条件を設定します。
+      var popUpOpt = {contentHtml: markerId, visible: false}; // ポップアップにマーカーのフィーチャー識別子を表示します。
+      //### ポップアップ作成 ###
+      // ポップアップをマーカーと紐付けるため、ポップアップをFeaturesクラスに追加します。
+      Mfapi.Features.createPopUp(popUpOpt, popUpId);
+
+      // ### マーカー作成処理 ###
+
+      // マーカーの作成条件を設定します。
+      // 紐付けるポップアップのフィーチャー識別子を指定しています。
+      var markerOpt = {position : mapPos, popUpKey : popUpId};
+      // マーカーレイヤーにマーカーを登録します。
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+
+      //### ポリライン作成・更新処理 ###
+
+      // １回目の地図クリックイベントは、ポリラインを作成しません。
+      // ２回目の地図クリックイベントは、ポリライン作成処理を行います。
+      // ３回目以降の地図クリックイベントは、すでに存在するポリラインにクリックした座標を追加し、ポリライン更新処理を行います。
+      
+      if (counter == 0) {
+         
+      } else if (counter == 1) {
+
+        //### ポリライン作成処理 ###
+
+        // ポリラインの作成条件を設定します。
+        // 前回クリックした緯度経度と、今回クリックした緯度経度を結ぶポリラインを作成します。
+        var polylineOpt = {positions:[beforerClickMapPos, mapPos]};
+        // ジオメトリーレイヤーにポリラインを登録します。
+        Mfapi.Map.GeometryLayer['gLayer'].addPolyline(polylineOpt, polylineId);
+
+      } else {
+
+        //### ポリライン更新処理 ###
+
+        // ポリラインのオブジェクトを取得します。
+        var polyline = Mfapi.Features.getObject(polylineId);
+        // ポリラインから座標情報を取得し、クリックした座標を末尾に追加します。
+        var points = polyline.getPositions().concat(mapPos);
+        // ポリラインに新しい緯度経度を設定します。
+        polyline.setOptions({positions:points});
+
+      }
+
+      // ポリラインを引くためにクリックした緯度経度を保持します。
+      beforerClickMapPos = mapPos;
+      counter++;
+    }
+
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

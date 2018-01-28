@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-2.ポリゴン作成】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### ジオメトリーレイヤー作成処理 ###
+      // ポリゴンを表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### ポリゴン作成処理 ###
+      var polygonId = 'polygon1';         // ポリゴンのフィーチャー識別子
+
+      // 矩形の緯度経度を設定します。
+      var setPoly = {
+        north : 139.76926374856686,
+        south : 139.7647576374216,
+        east : 35.683323139617755,
+        west : 35.67908776419846
+      };
+      // ポリゴンの作成条件を設定します。
+      var polygonOpt = {
+        edgeColor : '#0000ff',     // 線の色
+        edgeWidth : 4,             // 線の幅
+        fillColor : '#0044ff',     // 線の色
+        opacity : 0.8,             // 不透明度
+        positions : [
+          new Mfapi.Util.LonLat(setPoly.north, setPoly.east),
+          new Mfapi.Util.LonLat(setPoly.north, setPoly.west),
+          new Mfapi.Util.LonLat(setPoly.south, setPoly.west),
+          new Mfapi.Util.LonLat(setPoly.south, setPoly.east)
+        ],
+        visible : true             // 表示ON/OFF
+      };
+
+      // ジオメトリーレイヤーにポリゴンを登録します。
+      Mfapi.Map.GeometryLayer['gLayer'].addPolygon(polygonOpt, polygonId);
+    }
+
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

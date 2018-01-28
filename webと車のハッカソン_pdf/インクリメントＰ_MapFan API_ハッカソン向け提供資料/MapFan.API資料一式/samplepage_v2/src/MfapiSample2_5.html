@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-5.マーカー操作】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### 地点リスト ###
+      var pointData = [
+        { name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+          text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/car.png', width:48, height:48, x:-24, y:-36, angle:20 },
+        { name: '豊洲配送事業所', lon: 139.7959191978587, lat: 35.655211407306176,
+          text: '<div><b>豊洲配送事業所</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/car.png', width:48, height:48, x:-24, y:-30 },
+        { name: '有明駅営業所', lon: 139.79315890678254, lat: 35.63467955160454,
+          text: '<div><b>有明駅営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 11:00-21:00</div>',
+          imageUrl:'./img/car.png', width:48, height:48, x:-24, y:-30, angle:240 },
+        { name: '渋谷営業所', lon: 139.70134957426947, lat: 35.65864567145413,
+          text: '<div><b>渋谷営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-21:00</div>',
+          imageUrl:'./img/car.png', width:48, height:48, x:-24, y:-36 },
+      ];
+
+      //### マーカーレイヤー作成処理 ###
+      // マーカーレイヤーを生成し、地図DIVに追加します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 地点リスト情報から、マーカーとポップアップを生成します。
+      for( var i=0; i<pointData.length; i++ ) {
+
+        //### ポップアップ作成処理 ###
+
+        // ポップアップのフィーチャー識別子
+        // フィーチャー識別子を重複させないため、インデックスを指定しています。
+        var popUpId = 'popup_'+i;
+        // ポップアップ作成条件を生成します。
+        // 作成条件には、ポップアップの表示サイズと表示内容、初期表示時に非表示となるように指定しています。
+        var popUpOpt = {
+          size : new Mfapi.Util.ScreenSize(180,80),
+          contentHtml : pointData[i].text,
+          visible : false
+        };
+
+        // ポップアップをマーカーと紐付けるため、ポップアップをFeaturesクラスに登録します。
+        Mfapi.Features.createPopUp(popUpOpt, popUpId);
+
+        //### マーカー作成処理 ###
+
+        // マーカーのフィーチャー識別子を重複させないため、インデックスを指定しています。
+        var markerId = 'marker_'+i;
+        // マーカー作成条件にポップアップのフィーチャー識別子を指定します。
+        var markerOpt = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : popUpId
+        };
+        // ユーザー指定イメージパス、イメージサイズ、表示位置、不透明度、回転角度を指定します。
+        markerOpt.imageUrl = pointData[i].imageUrl;
+        markerOpt.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+        markerOpt.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+        markerOpt.imageOpacity = 1;
+        if (pointData[i].angle) {
+          // 作成条件に角度を指定します。
+          markerOpt.angle = pointData[i].angle;
+        }
+
+        // マーカーレイヤーにマーカーを登録します。。
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+      }
+
+      // マーカーのオブジェクトを取得し、角度を指定します。(マーカー生成後に変更しています)
+      var marker1 = Mfapi.Features.getObject('marker_1');
+      var addOpt1 = {
+          angle:315
+      }
+      marker1.setOptions(addOpt1);
+
+      var marker3 = Mfapi.Features.getObject('marker_3');
+      var addOpt3 = {
+          angle:150
+      }
+      marker3.setOptions(addOpt3)
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-8.図形クリック】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+    .labelStyle {
+      color:black;
+      border:solid 1px #000000;
+      background-color:white;
+    }
+    .mycustombtn {
+      font-size : 10pt;
+      font-family : 'sans-serif';
+      font-weight : normal;
+      border-radius: 2px;
+      display : "block";
+      margin : 1px;
+      padding: 4px;
+      text-decoration: none;
+      text-align: center;
+      line-height: 1.2em;
+      border : none;
+      background-color: royalblue;
+      color: white;
+      opacity : 0.8;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // ジオメトリーレイヤーを追加します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      // マーカーレイヤーを追加します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### サークル　条件設定 ###
+      // サークルオブジェクト object#1 用の作成条件 opt1 を作成します。
+      // 詳細はCircleOptionsクラスの仕様をご参照下さい。
+      var opt1 = {
+        edgeColor : '#ff0000', // 枠線の色
+        edgeWidth : 4, // 枠線の幅
+        fillColor : '#00ff00', // 塗り色
+        opacity : 0.5, // 不透明度
+        position :  new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),  // 東京駅
+        radius : 1600, // 半径
+        visible : true // 表示状態
+      };
+
+      //### ポリゴン　条件設定 ###
+      // ポリゴンオブジェクト object#2 用の作成条件 opt2 を作成します。
+      // 詳細はPolygonOptionsクラスの仕様をご参照下さい。
+      var opt2 = {
+        edgeColor : '#ff00ff', // 枠線の色
+        edgeWidth : 4,         // 枠線の幅
+        fillColor : '#00ff00', // 塗り色
+        opacity : 0.5,         // 不透明度
+        positions : [
+           new Mfapi.Util.LonLat(139.75821002138233,35.66657238126213),  // 新橋駅
+           new Mfapi.Util.LonLat(139.7959191978587,35.655211407306176),  // 豊洲駅
+           new Mfapi.Util.LonLat(139.79315890678254,35.63467955160454),  // 有明駅
+           new Mfapi.Util.LonLat(139.73875357500563,35.62850770123775),  // 品川駅
+           new Mfapi.Util.LonLat(139.70134957426947,35.65864567145413)   // 渋谷駅
+          ],
+        visible : true // 表示状態
+      };
+
+      //### ポリライン　条件設定 ###
+      // ポリラインオブジェクト object#3 用の作成条件 opt3 を作成します。
+      // 詳細はPolylineOptionsクラスの仕様をご参照下さい。
+      var opt3 = {
+        lineColor : '#0000ff', // 線の色
+        lineWidth : 4,         // 線の幅
+        opacity : 0.8,         // 不透明度
+        positions : [
+            new Mfapi.Util.LonLat(139.70090283767686,35.68851826791775),   // 新宿駅
+            new Mfapi.Util.LonLat(139.7108740987224,35.72992490706989),    // 池袋駅
+            new Mfapi.Util.LonLat(139.77649106403516,35.713413463237565),  // 上野駅
+            new Mfapi.Util.LonLat(139.8166571438273,35.718386818767186),   // 曳舟駅
+            new Mfapi.Util.LonLat(139.826947289596,35.69723830373342),     // 亀戸駅
+            new Mfapi.Util.LonLat(139.77311565279877,35.69837872503799)    // 秋葉原駅
+          ],
+        visible : true // 表示状態
+      };
+
+      //### ポイント　条件設定 ###
+      // ポイントオブジェクト object#4 用の作成条件 opt4 を作成します。
+      // 詳細はPointOptionsクラスの仕様をご参照下さい。
+      var opt4 = {
+        edgeColor : '#ff0000', // 枠線の色
+        edgeWidth : 1,         // 枠線の幅
+        fillColor : '#ff0000', // 塗り色
+        opacity : 0.8,         // 不透明度
+        positions : null,      // 緯度経度※作成時に後述のpointsから取得する
+        width : 10,            // 点幅
+        visible : true         // 表示状態
+      };
+      // ポイント緯度経度
+      var points = [
+        {position : new Mfapi.Util.LonLat(139.7006928036672,35.68961425420631), name: 'POINT_JB10'},    // 新宿駅
+        {position : new Mfapi.Util.LonLat(139.69745031099612,35.700751497234926), name: 'POINT_JB09'},  // 大久保駅
+        {position : new Mfapi.Util.LonLat(139.68493810396686,35.706241989984754), name: 'POINT_JB08'},  // 東中野駅
+        {position : new Mfapi.Util.LonLat(139.66573110323358,35.70580811283242), name: 'POINT_JB07'},   // 中野駅
+        {position : new Mfapi.Util.LonLat(139.64944234591596,35.70530453629846), name: 'POINT_JB06'},   // 高円寺駅
+        {position : new Mfapi.Util.LonLat(139.63572850925237,35.70494035144415), name: 'POINT_JB05'},   // 阿佐ヶ谷駅
+        {position : new Mfapi.Util.LonLat(139.6203838895091,35.70450646720755), name: 'POINT_JB04'}     // 荻窪駅
+      ];
+
+      // オブジェクトを作成し、ジオメトリーレイヤーへの登録を行います。
+      Mfapi.Map.GeometryLayer['gLayer'].addCircle(opt1,'CIRCLE');
+      Mfapi.Map.GeometryLayer['gLayer'].addPolygon(opt2,'POLYGON');
+      Mfapi.Map.GeometryLayer['gLayer'].addPolyline(opt3,'POLYLINE');
+      for (var i=0,len=points.length; i < len; i++) {
+        opt4.position = points[i].position;
+        Mfapi.Map.GeometryLayer['gLayer'].addPoint(opt4, points[i].name);
+      }
+
+      // 図形クリックのコールバック関数を設定します。
+      Mfapi.Events.onFeatureClick = featureClick;
+      
+      //### カスタムボタン ###
+      var eleMap = document.getElementById('sample_map');
+      
+      // カスタムボタンを表示するカスタムコントーラーを作成します。
+      var customCtrl = document.createElement('div');
+      customCtrl.className = 'mycustomctrl';
+
+      // 「ラベル削除」カスタムボタン作成します。
+      var button = document.createElement('button');
+      button.innerHTML = 'ラベル削除';
+      button.id = 'delete_label';
+      button.className = 'mycustombtn';
+      // 「ラベル削除」ボタンをクリックした時に地図の中心座標を保持します。
+      button.addEventListener('click', function() {
+        for(var key in Mfapi.Features.Label) {
+          Mfapi.Features.remove(key);
+        }
+      });
+
+      // 「ラベル削除」カスタムボタンをカスタムコントローラーに設定します。
+      customCtrl.appendChild(button);
+
+      // 地図DIVにカスタムコントローラーを設定します。
+      eleMap.appendChild(customCtrl);
+
+      // カスタムボタンのスタイルを設定します。
+      customCtrl.style.position = "absolute";
+      customCtrl.style.top = '10px';
+      customCtrl.style.left = Math.round(eleMap.getBoundingClientRect().width / 2 - customCtrl.getBoundingClientRect().width / 2) + 'px';
+
+    }
+
+    //### 図形クリックイベントのコールバック関数 ###
+    function featureClick(screenPosition, mapPosition, featureId) {
+      // 以下の選択図形内のクリックした緯度経度にラベルを作成します。
+      var objType = Mfapi.Features.getObjectType(featureId);
+      switch (objType) {
+        case Mfapi.Const.ObjectType.CIRCLE:
+        case Mfapi.Const.ObjectType.POLYGON:
+        case Mfapi.Const.ObjectType.POLYLINE:
+        case Mfapi.Const.ObjectType.POINT:
+          // マーカーとの紐付けがないラベルを作成します。
+          var labelId = 'label_'+featureId;
+          var labelOpt = {
+            position : mapPosition,
+            contentHtml : '<div class=labelStyle><span>'+featureId+'</span></div>',
+            visible : true
+          };
+
+          // オブジェクトを作成し、マーカーレイヤーへの登録を行います。
+          // ラベルが既に図形に対して表示されている場合は削除し、追加します。
+          if (Mfapi.Features.getObjectType(labelId) != -1) {
+              Mfapi.Features.remove(labelId);
+          }
+          Mfapi.Map.MarkerLayer['mLayer'].addLabel(labelOpt, labelId);
+          break;
+      }
+
+    }
+
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

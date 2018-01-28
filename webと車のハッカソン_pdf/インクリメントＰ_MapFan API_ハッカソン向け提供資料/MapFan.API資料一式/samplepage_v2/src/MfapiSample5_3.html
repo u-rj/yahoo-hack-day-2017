@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-3.地図縮尺変更イベント】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+  #sample_map {
+    width: 660px;
+    height: 280px;
+  }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      var shinjukuStation = {lon: 139.70030321482975, lat:35.68955994193983};
+      var targetLonLat = shinjukuStation;
+
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : targetLonLat,
+        mapScale : 12
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーを追加します。
+      var markerLayerId = "mlaryer1";
+      Mfapi.Map.addMarkerLayer(markerLayerId);
+      var markerLayer = Mfapi.Map.MarkerLayer[markerLayerId];
+
+      // ポップアップを作成します。
+      var popupId = "p1";
+      Mfapi.Features.createPopUp(
+          {
+            contentHtml : "スケールを変更してください。"
+          }
+          , popupId
+      );
+      var popup = Mfapi.Features.getObject(popupId);
+
+      // マーカーを作成します。
+      var markerId = "m1";
+      markerLayer.addMarker(
+          {
+              position : options.centerPosition
+              , popUpKey : popupId
+          }
+          , markerId
+      );
+
+      // 地図縮尺変更イベントのコールバック関数を設定します。
+      Mfapi.Events.onChangedMapScale = function(scale) {
+        popup.setOptions({
+          contentHtml : "スケールが「" + scale + "」に変更されました。",
+          visible : true
+        });
+      };
+
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

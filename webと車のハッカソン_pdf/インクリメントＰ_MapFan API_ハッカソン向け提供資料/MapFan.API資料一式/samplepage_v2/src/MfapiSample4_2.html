@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【4-2.ルート地点設定と案内表示】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 380px;
+      height: 256px;
+    }
+    #center_image {
+      width: 34px;
+      height: 30px;
+    }
+    #center_div {
+      z-index: 5000000;
+      position: absolute;
+      left: 177px;
+      top: 117px;
+      pointer-events: none;
+    }
+  </style>
+  <!--ルート関連のDIVのスタイル-->
+  <style type="text/css">
+    #positions_bar {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 264px;
+      left: 0px;
+      width: 380px;
+      height: 24px;
+      background-color:#cccccc;
+    }
+    #info_window {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 2px;
+      left: 390px;
+      width: 218px;
+      height: 256px;
+      background-color:#cccccc;
+    }
+    #operation_bar {
+      margin: 2px;
+      padding: 2px;
+      position: absolute;
+      top: 264px;
+      left: 390px;
+      width: 218px;
+      height: 24px;
+      background-color:#cccccc;
+    }
+    #result_text {
+      padding: 0px;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 214px;
+      height: 252px;
+      overflow-y: scroll;
+    }
+    #loading {
+      margin: 0px;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 100%;
+      height: 100%;
+      z-index: 5000001;
+      visibility : hidden;
+      background-color: rgba(0,0,0,0.2);
+      filter:progid:DXImageTransform.Microsoft.Gradient(
+       GradientType=0,StartColorStr=#22000000,EndColorStr=#22000000);
+    }
+    #loading_title {
+      padding-top: 20px;
+      text-align: center;
+      position: absolute;
+      top: 40px;
+      left:120px;
+      width: 240px;
+      height: 60px;
+      color: black;
+      background-color: white;
+    }
+    .info_box {
+      padding: 2px;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 214px;
+      height: 252px;
+      background-color:#dddddd;
+    }
+    .item1 {
+      margin: 0px;
+      padding: 0px;
+    }
+    .item2 {
+      margin-left: 2px;
+      float: left;
+    }
+    .item3 {
+      margin: 0px;
+      padding: 0px;
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 前操作で選択した案内リストのDIVタグのID ###
+    var prevGuideId = '';
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ルートAPIサーバを設定します。
+      Mfapi.routeHost = 'api-route-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7472311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーとジオメトリーレイヤーを追加します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 初期表示処理を行います。
+      initScreen();
+    }
+
+    //### 出発地、目的地設定処理 ###
+    function setPoint(type) {
+      if(type=='s')
+        createPointMarker('start_marker',0);
+      else if(type=='d')
+        createPointMarker('destination_marker',50);
+    }
+
+    //### ルート検索＆描画要求処理 ###
+    // 検索実行ボタンを押したときに実行します。
+    // 各UIのアクティブ制御、検索条件、描画条件の作成などを行った後、
+    // ルート検索＆描画要求のメソッドを実行します。
+    function doCalcAndDraw() {
+
+      // 全てのボタンを非アクティブにします。
+      document.getElementById('calc').disabled=true;
+      document.getElementById('back').disabled=true;
+      document.getElementById('start').disabled=true;
+      document.getElementById('destination').disabled=true;
+
+      // 出発地、目的地の設定チェックを行います。
+      // 設定されていない場合、警告を出し、ボタンのアクティブ制御を戻して中断します。
+      if( Mfapi.Features.getObjectType('start_marker') == -1 ) {
+        window.alert("出発地が設定されていません。");
+        document.getElementById('calc').disabled=false;
+        document.getElementById('back').disabled=true;
+        document.getElementById('start').disabled=false;
+        document.getElementById('destination').disabled=false;
+        return;
+      }
+      if( Mfapi.Features.getObjectType('destination_marker') == -1 ) {
+        window.alert("目的地が設定されていません。");
+        document.getElementById('calc').disabled=false;
+        document.getElementById('back').disabled=true;
+        document.getElementById('start').disabled=false;
+        document.getElementById('destination').disabled=false;
+        return;
+      }
+
+      // リセットボタンを非アクティブにします。
+      document.getElementById('reset').disabled=true;
+
+      // 検索中画面を表示します。
+      document.getElementById('loading').style.visibility = 'visible';
+
+      //### ルート検索条件"optCalc"の作成 ###
+      // 出発地、目的地の地点マーカーの座標を利用して、条件を作成します。
+      var optCalc = {
+        start : Mfapi.Features.Marker['start_marker'].getPosition(),
+        destination : Mfapi.Features.Marker['destination_marker'].getPosition()
+      };
+
+      //### 経路描画条件"optDraw"の作成 ###
+      // 経路描画用のジオメトリーレイヤーIDのみを指定します。
+      // 経路描画でのマーカー描画は行わないため、マーカーレイヤーIDの指定は省略します。
+      var optDraw = {
+        geometryLayerId : 'gLayer'
+      };
+
+      //### ルート検索＆経路描画要求のメソッド実行 ###
+      // 処理終了後に呼ばれるコールバック関数として"route_calc_and_draw_completed"を指定します。
+      Mfapi.Route.requestRouteCalcAndDraw('route_sample',optCalc,optDraw,route_calc_and_draw_completed);
+    }
+
+    //### ルート検索＆経路描画終了時の処理 ###
+    // ルート検索＆経路描画処理終了時に実行します。
+    // ルート検索に成功した場合、検索結果から作成した案内テキストのDIVタグを、失敗した場合、エラーとなります。
+    // 情報テキストのDIVタグを、"result_text"のDIVタグに追加します。
+    // その後、情報窓の表示制御や戻るボタンのアクティブ制御などを行います。
+    function route_calc_and_draw_completed(result_routeId) {
+
+      // 経路進行の方向のコード値別に案内テキストを定義します。
+      // 本サンプルでは「未設定」、「道なり」の場合は、案内を出さないようにしています。
+      var DIRECTION_GUIDANCE = [
+        '', '', '直進', '右斜め', '右斜め', '右折', '右斜め後ろ', '右斜め後ろ',
+        'Ｕターン', '左斜め後ろ', '左斜め後ろ', '左折', '左斜め', '左斜め' ];
+
+      // ルート検索結果を取得します。
+      var calcData = Mfapi.Route.RteInfo[result_routeId].calcData;
+
+      //### 結果テキスト追加：ルート検索成功時 ###
+      if(calcData.status=='success') {
+
+        // ルート全体が表示させるようにします。
+        Mfapi.Route.fitRoute(result_routeId);
+
+        // 検索結果サマリー情報を取得し、テキストを作成します。
+        var summary = calcData.summary;
+        addTextDiv('result_text','ルート検索結果：','item1');
+        addTextDiv('result_text','　距離　'+parseInt(summary.totalDistance)+'m','item1');
+        addTextDiv('result_text','　時間　'+parseInt(summary.totalTravelTime)+'秒','item1');
+        addTextDiv('result_text','　料金　'+parseInt(summary.totalToll.toll)+'円','item1');
+        addTextDiv('result_text','--------------------','item1');
+
+        // 検索結果案内情報(案内区間単位)を取得し、テキストを作成します。
+        var guide = calcData.guide;
+        var index=1;
+        for(var i=0; i<guide.length; i++) {
+          var infoText='';
+
+          // 誘導ポイント(誘導区間のタイプ)を取得します。
+          var guideType=guide[i].type;
+
+          switch (guideType) {
+
+            //### 誘導ポイント＝出発地の場合 ###
+            case 1:
+              infoText = '['+index+']'+'出発地';
+              break;
+
+            //### 誘導ポイント＝目的地の場合 ###
+            case 2:
+              infoText = '['+index+']'+'目的地';
+              break;
+
+            //### 誘導ポイント＝案内ポイントの場合 ###
+            case 0:
+              // 案内情報の有無を確認します。
+              if(guide[i].guideInfo === undefined) break;
+
+              // 案内情報の各項目を取得します。
+              var direction = DIRECTION_GUIDANCE[guide[i].guideInfo.guideDirection];
+              var detailInfo = getDetailInfo(guide[i].guideInfo);
+              var detailName = getDetailName(guide[i].guideInfo);
+              var highwayFacilityName = getHighwayFacilityName(guide[i].guideInfo);
+              var toll = getToll(guide[i].guideInfo);
+              var tollFacilityName = getTollFacilityName(guide[i].guideInfo);
+              var crossingName = getCrossingName(guide[i].guideInfo);
+
+              // 案内テキストを作成します。
+              var guideText = '';
+
+              //## ①料金情報 ##
+              if(toll!='') {
+                // 料金所施設名称がある場合：料金施設名称と料金
+                if(tollFacilityName!='')
+                  guideText = tollFacilityName+' 料金：'+toll+'円';
+                // 料金所施設名称がない場合：料金のみ
+                else
+                  guideText =' 料金：'+toll+'円';
+                // 経路進行方向情報がある場合：経路進行方向テキストを追記
+                if(direction!='')
+                  guideText += ' ' + direction;
+
+              //## ②誘導詳細情報 ##
+              } else if(detailInfo!='') {
+                // 誘導詳細情報の名称(テキスト)情報がある場合：テキスト名称と詳細誘導情報
+                if(detailName!='')
+                  guideText = detailName+' '+detailInfo;
+                // 誘導詳細情報の名称(テキスト)情報がない場合：詳細誘導情報のみ
+                else
+                  guideText = detailInfo;
+                // 経路進行方向情報がある場合：経路進行方向テキストを追記
+                if(direction!='')
+                  guideText += ' ' + direction;
+
+              //## ③高速道路施設名称 ##
+              // 高速道路施設名称と経路進行方向情報がある場合：高速道路施設名称と経路進行方向テキスト
+              } else if(highwayFacilityName!=''&&direction!='') {
+                guideText = highwayFacilityName + ' ' + direction;
+
+              //## ④交差点名称 ##
+              // 交差点名称と経路の進行方向情報がある場合：交差点名称と経路進行方向テキスト
+              } else if(crossingName!=''&&direction!='') {
+                guideText = crossingName + ' ' + direction;
+
+              //## ⑤経路進行方向 ##
+              // 経路進行方向情報のみある場合：経路進行方向テキスト
+              } else if(direction!='') {
+                guideText = direction;
+              }
+
+              //## 案内テキスト格納 ##
+              if(guideText!='')
+                infoText = '['+index+']'+guideText;
+
+              break;
+          }
+          //### テキスト作成 ###
+          // 案内テキストに何か格納されていた場合のみ、同テキストを格納したDIVタグを作成します。
+          // 追加するタブのクリック(タップ)で、地図移動できるようにします。
+          // 移動座標は、誘導データ下の緯度経度データの先頭値を設定します。
+          if(infoText!='') {
+            var move = guide[i].guidePoints[0];
+            addTextDiv('result_text',infoText,'item3','guide'+index,move);
+            index++;
+          }
+        }
+        // 選択状態をリセットします。
+        prevGuideId = '';
+
+      //### 結果テキスト追加：ルート検索失敗時 ###
+      } else {
+         addTextDiv('result_text','ルート検索エラー：','item1');
+         addTextDiv('result_text',calcData.status,'item1');
+      }
+
+      // 情報窓に結果を表示します。
+      document.getElementById('explain').style.visibility = 'hidden';
+      document.getElementById('result').style.visibility = 'visible';
+
+      // 検索中画面を非表示にします。
+      document.getElementById('loading').style.visibility = 'hidden';
+
+      // 戻るボタンをアクティブにします。
+      document.getElementById('back').disabled=false;
+
+      // リセットボタンをアクティブにします。
+      document.getElementById('reset').disabled=false;
+    }
+
+    //### 戻るボタンの処理 ###
+    // 戻るボタンが押されたときに実行します。
+    // ルートデータを削除して、経路表示をoffにした後、情報窓も説明文表示に切り替えます。
+    function doBack() {
+
+      // ルートデータを全件削除します。
+      // データ削除時に関連するマーカー、ポリラインも削除されます。
+      Mfapi.Route.removeRteInfo('route_sample');
+
+      // 結果テキストのDIVをリセットします。
+      recretateDiv('result_text','result');
+
+      // 情報窓に説明文を表示します。
+      document.getElementById('explain').style.visibility = 'visible';
+      document.getElementById('result').style.visibility = 'hidden';
+
+      // 各種ボタンのアクティブ制御を行います。
+      // 戻るボタン以外をアクティブにします。
+      document.getElementById('back').disabled=true;
+      document.getElementById('calc').disabled=false;
+      document.getElementById('start').disabled=false;
+      document.getElementById('destination').disabled=false;
+    }
+
+    //### リセットボタンの処理 ###
+    // リセットボタンが押されたときに実行します。
+    // ルートデータを削除して、経路表示をoffにした後、情報窓も説明文表示に切り替えます。
+    function doReset() {
+
+      // ルートデータを全件削除します。
+      Mfapi.Route.removeRteInfo('route_sample');
+
+      // 出発地、目的地のマーカーを削除します。
+      if( Mfapi.Features.getObjectType('start_marker') != -1 ) {
+        Mfapi.Features.remove('start_marker');
+      }
+      if( Mfapi.Features.getObjectType('destination_marker') != -1 ) {
+        Mfapi.Features.remove('destination_marker');
+      }
+
+      // 画面を初期化します。
+      initScreen();
+    }
+
+    //### 画面初期化処理 ###
+    function initScreen() {
+
+      // 初期時は説明文を表示します。
+      document.getElementById('explain').style.visibility = 'visible';
+      document.getElementById('result').style.visibility = 'hidden';
+
+      // 結果テキストのリセット処理を実行します。
+      recretateDiv('result_text','result');
+
+      // 戻るボタン以外をアクティブにします。(リセットボタンは常時アクティブのままとなります。)
+      document.getElementById('start').disabled=false;
+      document.getElementById('destination').disabled=false;
+      document.getElementById('calc').disabled=false;
+      document.getElementById('back').disabled=true;
+      document.getElementById('reset').disabled=false;
+
+      // 検索中画面を非表示にします。
+      document.getElementById('loading').style.visibility = 'hidden';
+    }
+
+    //### DIVタグのリセット処理 ###
+    // '親DIVタグ'(parentId)の下にある'子DIVタグ'(targetId)を一度削除して、再追加します。
+    function recretateDiv(targetId,parentId) {
+      var div = document.getElementById(targetId);
+      if( div )
+        document.getElementById(parentId).removeChild(div);
+      var new_div = document.createElement('div');
+      new_div.setAttribute('id', targetId);
+      document.getElementById(parentId).appendChild(new_div);
+    }
+
+    //### 地点マーカー作成処理 ###
+    // 指定されたマーカーID(marker_id)の地点マーカーを'mLayer'の上に登録します。
+    // 座標は地図中心座標を適用します。
+    // マーカー画像は'./img/route_points.png'を使用し、位置(cx,0)から50px×50pxの画像を
+    // 切り出して、適用します。また、オフセット(-25px,-49px)とします。
+    // なお、既に指定されたIDのマーカーがある場合、削除し、再作成します。
+    function createPointMarker(marker_id,cx) {
+      if( Mfapi.Features.getObjectType(marker_id) != -1 )
+        Mfapi.Features.remove(marker_id);
+      var optMarker = {
+        position: Mfapi.Map.getCenterPosition(),
+        imageUrl: './img/route_points.png',
+        cuttingPoint: { x: cx, y: 0 },
+        imageSize : { width: 50, height: 50 },
+        imageOffset : { x: -25, y: -49 }
+      };
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(optMarker,marker_id);
+    }
+
+    //### 料金情報取得処理 ###
+    function getToll(guideInfo) {
+      if(guideInfo.guideToll === undefined) return '';
+      return guideInfo.guideToll.toll;
+    }
+
+    //### 料金所施設名称取得処理 ###
+    function getTollFacilityName(guideInfo) {
+      if(guideInfo.guideToll === undefined) return '';
+      return guideInfo.guideToll.name;
+    }
+
+    //### 誘導詳細情報取得処理 ###
+    function getDetailInfo(guideInfo) {
+      if(guideInfo.guideDetail === undefined) return '';
+      switch (guideInfo.guideDetail.code) {
+        case 32: return '入口';
+        case 33: return '出口';
+        case 34: return ''; // SA/PAは案内対象から除外
+        case 48: return 'フェリーターミナル';
+        default: return '';
+      }
+    }
+
+    //### 誘導詳細名称情報取得処理 ###
+    function getDetailName(guideInfo) {
+      if(guideInfo.guideDetail === undefined) return '';
+      return guideInfo.guideDetail.name;
+    }
+
+    //### 有料道路施設名称取得処理 ###
+    function getHighwayFacilityName(guideInfo) {
+      if(guideInfo.guideHighway === undefined) return '';
+      if(guideInfo.guideHighway.facilities === undefined) return '';
+      return guideInfo.guideHighway.facilities[0].name;
+    }
+
+    //### 交差点名称取得処理 ###
+    function getCrossingName(guideInfo) {
+      if(guideInfo.guideCrossing === undefined) return '';
+      return guideInfo.guideCrossing.name;
+    }
+
+    //### テキストDIV追加汎用処理 ###
+    // "parentId"で指定されたDIVタグに"text"で指定されたテキストのDIVタグを追加します。
+    // "css_class"が指定された場合、クラスとして適用します。
+    // "id"が指定された場合、idとして適用します。
+    // "move"が指定された場合、クリック時に地図移動処理"moveMap"を呼ぶようにします。
+    function addTextDiv(parentId,text,css_class,id,move) {
+      var textNode = document.createTextNode(text);
+      var label = document.createElement('label');
+      label.appendChild(textNode);
+      if(css_class!='')
+        label.setAttribute('class', css_class);
+      if(id!=null) {
+        if(id!='')
+          label.setAttribute('id', id);
+      }
+      if(move!=null) {
+        label.setAttribute('onclick','moveMap('+move.lon+','+move.lat+',this)');
+      }
+      var div = document.createElement('div');
+      div.appendChild(label);
+      document.getElementById(parentId).appendChild(div);
+    }
+
+    //### 地図移動処理 ###
+    // "lon","lat"で指定した緯度経度に地図を移動します。
+    // また、"element"で指定されたタグの色を青から赤に変更し、前操作で選択したタグを青に変更します。
+    function moveMap(lon,lat,element) {
+
+      // 地図を移動します
+      Mfapi.Map.setCenterPosition(new Mfapi.Util.LonLat(lon,lat));
+
+      // 選択したラベルの色を赤に変更します。
+      element.style.color='red';
+
+      // 前操作で選択したラベルの色を青に戻します。
+      if(prevGuideId!='')
+        document.getElementById(prevGuideId).style.color='blue';
+      prevGuideId=element.getAttribute('id');
+    }
+
+  </script>
+</head>
+<body>
+  <!--地図描画対象となるDIVタグ-->
+  <div id='sample_map'></div>
+  <!--地図中心を示すパーツのDIVタグ-->
+  <div id='center_div'><img id='center_image' src='img/center.png'></div>
+  <!--地点設定バーDIVタグ-->
+  <div id='positions_bar'>
+    <input type="button" class="item2" value="出発地設定" id="start" onclick="setPoint('s');">
+    <input type="button" class="item2" value="目的地設定" id="destination" onclick="setPoint('d');">
+  </div>
+  <!--情報窓DIVタグ-->
+  <div id='info_window'>
+    <div id='explain' class="info_box">
+      <label>出発地、目的地を設定したら、検索実行ボタンを押してください。</label>
+    </div>
+    <div id='result' class="info_box"></div>
+  </div>
+  <!--操作バーDIVタグ-->
+  <div id='operation_bar'>
+    <input type="button" class="item2" value="検索実行" id="calc" onclick="doCalcAndDraw();">
+    <input type="button" class="item2" value="戻る" id="back" onclick="doBack();">
+    <input type="button" class="item2" value="リセット" id="reset" onclick="doReset();">
+  </div>
+  <!--検索中画面DIVタグ-->
+  <div id="loading">
+    <div id="loading_title">ルート検索＆描画処理中<img src="img/loader.gif"></img></div>
+  </div>
+</body>
+</html>

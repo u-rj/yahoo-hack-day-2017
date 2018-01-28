@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-4.マーカー・ポップアップ表示】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      // ポップアップ一括非表示モードをポップアップ以外の場所をクリックした際にポップアップを非表示にする設定をします。
+      // ポップアップの単一表示モードを表示したポップアップ以外を非表示にする設定をします。
+      // ポップアップの表示タイミングをマーカーのクリックまたはタップイベント時にポップアップを表示する設定をします。
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 12,
+        hidePopUpOnMapClick : true,                                     // ポップアップ一括非表示モード
+        singlePopUp : true,                                             // ポップアップの単一表示モード
+        popUpDisplayMode : Mfapi.Const.PopUpDisplayMode.MODE_TOUCH_END  // ポップアップの表示タイミング
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### 地点リスト ###
+      var pointData = [
+        { name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+          text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/a.gif', width:48, height:48, x:-24, y:-36 },
+      ];
+
+      //### マーカーレイヤー作成処理 ###
+      // マーカーを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### マーカー＋ポップアップ作成処理 ###
+      for( var i=0; i<pointData.length; i++ ) {
+
+        //### ポップアップ作成処理 ###
+
+        // ポップアップのフィーチャ識別子を重複させないため、インデックスを指定しています。
+        var popUpId = 'popup_'+i;
+        // ポップアップ作成条件に初期表示は表示OFFに指定しています。
+        var popUpOpt = {
+          size : new Mfapi.Util.ScreenSize(180,80),  // ポップアップサイズ(指定しない場合はcontentHtmlの内容により大きさが決まります)
+          contentHtml : pointData[i].text,           // 表示コンテンツ
+          visible : false                            // 表示ON/OFF
+        };
+
+        // ポップアップをマーカーと紐付けるため、ポップアップをFeaturesクラスに追加します。
+        Mfapi.Features.createPopUp(popUpOpt, popUpId);
+
+        //### マーカー作成処理 ###
+
+        // マーカーのフィーチャー識別子を重複させないため、インデックスを指定しています。
+        var markerId = 'marker_'+i;
+        // マーカー作成条件にポップアップのフィーチャー識別子を指定します。
+        var markerOpt = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : popUpId
+        };
+        // 地点リストに応じてマーカーの作成条件に設定値を追加します。
+        markerOpt.imageUrl = pointData[i].imageUrl;
+        markerOpt.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+        markerOpt.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+        markerOpt.imageOpacity = 0.8;
+
+        // マーカーレイヤーにマーカーを登録します。
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+      }
+
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

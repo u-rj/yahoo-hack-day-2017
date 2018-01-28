@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-6.地点リスト】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 460px;
+      height: 280px;
+      margin: 5px;
+      padding: 0px;
+    }
+  </style>
+  <!--地点リストDIVのスタイル-->
+  <style type="text/css">
+    #list {
+      float: left;
+      margin: 4px;
+      padding: 4px;
+      background-color:#eeeeee;
+    }
+    .item1 {
+      display: block;
+      floet: left;
+      width: 124px;
+      background-color: #aaaaaa;
+      padding: 4px;
+      margin: 4px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    var pointData;
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7472311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### 地点リスト ###
+      pointData = [
+        { name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+          text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/a.gif', width:48, height:48, x:-24, y:-36 },
+        { name: '新橋営業所', lon: 139.75821002138233, lat: 35.66657238126213,
+          text: '<div><b>新橋営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 10:00-19:00</div>',
+          markerType: 1 },
+        { name: '豊洲配送事業所', lon: 139.7959191978587, lat: 35.655211407306176,
+          text: '<div><b>豊洲配送事業所</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/b.gif', width:48, height:48, x:-24, y:-30  },
+        { name: '有明駅営業所', lon: 139.79315890678254, lat: 35.63467955160454,
+          text: '<div><b>有明駅営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 11:00-21:00</div>',
+          markerType: 1 },
+        { name: '品川営業所', lon: 139.73875357500563, lat: 35.62850770123775,
+          text: '<div><b>品川営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-19:00</div>',
+          markerType: 1 },
+        { name: '渋谷営業所', lon: 139.70134957426947, lat: 35.65864567145413,
+          text: '<div><b>渋谷営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-21:00</div>',
+          markerType: 1 },
+        { name: '新宿営業所', lon: 139.70090283767686, lat: 35.68851826791775,
+          text: '<div><b>新宿営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 ２４時間営業</div>',
+          markerType: 6 }
+      ];
+      //### マーカーレイヤー作成処理 ###
+      // マーカーとポップアップを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // 地点リスト情報から、マーカーとポップアップを生成します。
+      for( var i=0; i<pointData.length; i++ ) {
+        //### ポップアップ作成処理 ###
+
+        // ポップアップのフィーチャー識別子を重複させないため、インデックスを指定しています。
+        var popUpId = 'popup_'+i;
+        // ポップアップの作成条件を設定します。
+        var popUpOpt = {
+          size : new Mfapi.Util.ScreenSize(180,80),
+          contentHtml : pointData[i].text,           // ポップアップのinnerHTML
+          visible : false                            // 表示ON/OFF。初期表示は表示OFFとなります。
+        };
+        // ポップアップをマーカーと紐付けるため、ポップアップをFeaturesクラスに登録します。
+        Mfapi.Features.createPopUp(popUpOpt, popUpId);
+
+        //### マーカー作成処理 ###
+
+        // マーカーのフィーチャー識別子を重複させないため、インデックスを指定しています。
+        var markerId = 'marker_'+i;
+        // マーカーの作成条件を設定します。
+        var markerOpt = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : popUpId
+        };
+        if( pointData[i].imageUrl !== undefined ) {
+          markerOpt.imageUrl = pointData[i].imageUrl;
+          markerOpt.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+          markerOpt.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+          markerOpt.imageOpacity = 0.8;
+        } else {
+          markerOpt.markerType = pointData[i].markerType;
+        }
+        // マーカーレイヤーにマーカーを登録します。
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+
+        //### 地点リスト作成 ###
+        // 地点リストのラベルタグを生成し、クリック時に関数'selectItem'を呼ぶように設定します。
+        // ラベルのidは'label_n'とします。(nは通し番号0,1,2,..)
+        var text = document.createTextNode(pointData[i].name);
+        var label = document.createElement('label');
+        label.appendChild(text);
+        label.setAttribute('id', 'label_'+i);
+        label.setAttribute('class', 'item1');
+        label.setAttribute('onclick','selectItem(this.id)');
+        var divItem = document.createElement('div');
+        divItem.appendChild(label);
+        var divList = document.getElementById('list');
+        divList.appendChild(divItem);
+      }
+
+    }
+
+    var prevItemNumber = 0;
+
+    //### リスト選択時の処理 ###
+    function selectItem(id) {
+
+      // 選択済みの地点のラベル背景色を元に戻します。
+      document.getElementById('label_'+prevItemNumber).style.backgroundColor = '#aaaaaa';
+
+      // 選択済みの地点のマーカーに紐づくポップアップの表示をOFFにします。
+      Mfapi.Features.PopUp['popup_'+prevItemNumber].setVisible(false);
+
+      // 選択した地点のラベル背景色を変えます。
+      document.getElementById(id).style.backgroundColor = '#ff0000';
+
+      // 選択した地点の番号を取得します。
+      var itemNumber = parseInt(id.substr(6)); // 先頭６文字'label_'を除いた文字列を整数化
+
+      // 選択した地点のマーカーに紐づくポップアップの表示をONにします。
+      Mfapi.Features.PopUp['popup_'+itemNumber].setVisible(true);
+
+      // 選択した地点の緯度経度に地図を移動します。
+      var center = new Mfapi.Util.LonLat(pointData[itemNumber].lon, pointData[itemNumber].lat);
+      Mfapi.Map.setCenterPosition(center);
+
+      // 選択した地点の番号を保持します。
+      prevItemNumber = itemNumber;
+    }
+
+  </script>
+</head>
+<body>
+  <!--地図を描画対象となるDIVタグ-->
+  <div id='sample_map'></div>
+  <!--地点リストDIVタグ-->
+  <div id='list'></div>
+</body>
+</html>

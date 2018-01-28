@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+
+<title>MapFan API 組込みサンプル</title>
+
+<link href="css/common.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="src/demodata.js"></script>
+<script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="js/api.js"></script>
+
+</head>
+
+<body>
+<!-- contentsWrapper -->
+<div class="contentsWrapper">
+
+
+
+<!-- sideWrapper -->
+<div class="sideWrapper">
+
+    MapFan API<br>組込みサンプル
+    <ul class="accordion">
+		<li>
+			<p><span>1.地図</span></p>
+			<ul>
+				<li class="menuList"><a href="#" id='MfapiSample1_1'>1-1.地図表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_2'>1-2.コントローラー非表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_3'>1-3.コントローラー設定（ズームスライダー）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_4'>1-4.コントローラー設定（ズームボタン）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_5'>1-5.コントローラー設定（距離スケーラー）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_6'>1-6.コントローラー設定（カスタムボタン）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_7'>1-7.コントローラー設定（カスタムボタン複数個）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_8'>1-8.地図操作</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_9'>1-9.地図描画設定</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_10'>1-10.地図2画面表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample1_11'>1-11.指定範囲が収まる地図縮尺取得・変更</a></li>
+			</ul>
+		</li>
+		<li>
+			<p><span>2.マーカー・ポップアップ・ラベル</span></p>
+			<ul>
+				<li class="menuList"><a href="#" id='MfapiSample2_1'>2-1.マーカー作成</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_2'>2-2.マーカー作成（任意のアイコン画像）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_3'>2-3.マーカー非表示・削除</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_4'>2-4.マーカー＋ポップアップ表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_5'>2-5.マーカー操作</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_6'>2-6.地点リスト</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_7'>2-7.地図領域内のマーカー情報取得</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_8'>2-8.ラベル作成</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_9'>2-9.ラベル非表示・削除</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample2_10'>2-10.ラベルとマーカーの関連付け</a></li>
+			</ul>
+		</li>
+		<li>
+			<p><span>3.図形</span></p>
+			<ul>
+				<li class="menuList"><a href="#" id='MfapiSample3_1'>3-1.サークル作成</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample3_2'>3-2.ポリゴン作成</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample3_3'>3-3.ポリライン作成</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample3_4'>3-4.ポイント作成</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample3_5'>3-5.図形非表示・削除</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample3_6'>3-6.図形操作</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample3_7'>3-7.マウスクリックでポリライン作成</a></li>
+			</ul>
+		</li>
+		<li>
+			<p><span>4.ルート</span></p>
+			<ul>
+				<li class="menuList"><a href="#" id='MfapiSample4_1'>4-1.ルート描画</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample4_2'>4-2.ルート地点設定と案内表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample4_3'>4-3.ルート検索条件設定</a></li>
+			</ul>
+		</li>
+		<li>
+			<p><span>5.イベント</span></p>
+			<ul>
+				<li class="menuList"><a href="#" id='MfapiSample5_1'>5-1.地図クリック</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_2'>5-2.地図移動開始・終了イベント</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_3'>5-3.地図縮尺変更イベント</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_4'>5-4.マウスムーブイベント</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_5'>5-5.マーカークリック</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_6'>5-6.マーカー移動（マウス操作）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_7'>5-7.マーカー移動（タッチ操作）</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample5_8'>5-8.図形クリック</a></li>
+			</ul>
+		</li>
+		<li>
+			<p><span>6.その他</span></p>
+			<ul>
+				<li class="menuList"><a href="#" id='MfapiSample6_1'>6-1.「おもてなしマップ」表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample6_2'>6-2.現在地住所表示</a></li>
+				<li class="menuList"><a href="#" id='MfapiSample6_3'>6-3.地図領域サイズ・緯度経度取得</a></li>
+			</ul>
+		</li>
+	</ul>
+    <p id="updateinfo_link"><a href="./updateinfo.html">更新履歴</a></p>
+</div>
+<!-- end sideWrapper -->
+
+<!-- mainWrapper -->
+<div class="mainWrapper">
+
+<div id="contents">
+    <h1><p class="title" id="explain_title"></p></h1>
+    <div class="explain" id="explain_summary">
+    </div>
+
+    <div id="map"><iframe id="map_iframe" src="about:blank" style="width:100%; height:100%" scrolling="no"></iframe></div>
+
+    <h2><p>サンプルコード</p></h2>
+    <div class="explain" id="explain_detail">
+    </div>
+    <form>
+      <div>
+        <textarea id="example_code" spellcheck="false" readonly></textarea>
+      </div>
+    </form>
+
+</div>
+</div>
+<!-- end mainWrapper -->
+
+</div>
+<!-- end contentsWrapper -->
+
+
+
+</body>
+</html>
+

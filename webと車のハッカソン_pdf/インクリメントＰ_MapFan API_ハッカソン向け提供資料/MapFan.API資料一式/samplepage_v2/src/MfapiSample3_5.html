@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-5.図形非表示・削除】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+      position: relative;
+    }
+    #floating-panel {
+       width: 120px;
+       height: 90px;
+       position: absolute;
+       right: 5px;
+       top: -170px;
+       bottom: 0;
+       margin: auto;
+       z-index: 5;
+       background-color: #fff;
+       padding: 5px;
+       border: 1px solid #999;
+       text-align: center;
+       font-family: 'Roboto','sans-serif';
+       line-height: 30px;
+     }
+     #floating-panel input {
+       width: 120px;
+     }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### ジオメトリーレイヤー作成処理 ###
+      // ポリラインを表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### ポリライン作成処理 ###
+      var polylineId = 'polyline1';    // ポリラインのフィーチャー識別子
+      // ポリラインの作成条件を設定します。
+      var polylineOptions = {
+        lineWidth : 10,               // 線の幅
+        lineColor : '#00ff00',        // 線の色
+        opacity : 0.8,                // 不透明度
+        positions : [
+          new Mfapi.Util.LonLat(139.75821002138233,35.66657238126213),  // 新橋駅
+          new Mfapi.Util.LonLat(139.7959191978587,35.655211407306176),  // 豊洲駅
+          new Mfapi.Util.LonLat(139.79315890678254,35.63467955160454),  // 有明駅
+          new Mfapi.Util.LonLat(139.73875357500563,35.62850770123775),  // 品川駅
+          new Mfapi.Util.LonLat(139.70134957426947,35.65864567145413)   // 渋谷駅
+        ],
+        visible : true                // 表示ON/OFF
+      };
+
+      // ジオメトリーレイヤーにポリラインを登録します。
+      Mfapi.Map.GeometryLayer['gLayer'].addPolyline(polylineOptions, polylineId);
+
+    }
+
+    //### ポリライン表示・非表示設定 ###
+    function setMapOnAll(isVisible) {
+      // 全てのポリラインを参照し、ポリラインの表示ON-OFFを更新します。
+      for (var key in Mfapi.Features.Polyline) {
+        Mfapi.Features.Polyline[key].setOptions({visible: isVisible});
+      }
+    }
+
+    //### ポリライン非表示 ###
+    function clearPolyline() {
+      setMapOnAll(false);
+    }
+
+    //### ポリライン表示 ###
+    function showPolyline() {
+      setMapOnAll(true);
+    }
+
+    //### ポリライン削除 ###
+    function deletePolyline() {
+      // ポリラインを非表示にします。
+      clearPolyline();
+      // 全てのポリラインを参照し、ポリラインを削除します。
+      for (var key in Mfapi.Features.Polyline) {
+        Mfapi.Features.remove(key);
+      }
+    }
+
+  </script>
+</head>
+<body>
+  <div id='sample_map'>
+    <div id="floating-panel">
+      <input id="clearPolyline" onclick="clearPolyline();" type=button value="ポリライン非表示"><br>
+      <input id="showPolyline" onclick="showPolyline();" type=button value="ポリライン表示"><br>
+      <input id="deletePolyline" onclick="deletePolyline();" type=button value="ポリライン削除">
+    </div>
+  </div>
+</body>
+</html>

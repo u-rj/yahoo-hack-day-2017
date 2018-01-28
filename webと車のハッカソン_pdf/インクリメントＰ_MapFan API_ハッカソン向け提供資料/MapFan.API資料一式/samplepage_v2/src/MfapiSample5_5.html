@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-5.マーカークリック】</title>
+  <style type="text/css">
+    #sample_map {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      width: 660px;
+      height: 280px;
+      margin: 0px;
+    }
+    #popup_base {
+      margin: 0px;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 660px;
+      height: 280px;
+      z-index: 5000001;
+      visibility : hidden;
+      background-color: rgba(0,0,0,0.4);
+      filter:progid:DXImageTransform.Microsoft.Gradient(
+       GradientType=0,StartColorStr=#44000000,EndColorStr=#44000000);
+    }
+    #popup {
+      position: absolute;
+      left: 170px;
+      top: 20px;
+      width: 320px;
+      height: 160px;
+      margin: 0px;
+    }
+    .popup_content {
+      position: absolute;
+      padding: 30px;
+      left: 0px;
+      top: 0px;
+      margin: 0px;
+    }
+    .item1 {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      color: white;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 地点リスト ###
+    var pointData = [
+      { name: '東京駅', lon: 139.7672311841094, lat: 35.68119593467379,
+        text:'とうきょうえき が クリックされた！' },
+      { name: '新橋駅', lon: 139.75821002138233, lat: 35.66657238126213,
+        text:'しんばしえき が クリックされた！' },
+      { name: '豊洲駅', lon: 139.7959191978587, lat: 35.655211407306176,
+        text:'とよすえき が クリックされた！' },
+      { name: '有明駅', lon: 139.79315890678254, lat: 35.63467955160454,
+        text:'ありあけえき が クリックされた！' },
+      { name: '品川駅', lon: 139.73875357500563, lat: 35.62850770123775,
+        text:'しながわえき が クリックされた！' },
+      { name: '渋谷駅', lon: 139.70134957426947, lat: 35.65864567145413,
+        text:'しぶやえき が クリックされた！' },
+      { name: '新宿駅', lon: 139.70090283767686, lat: 35.68851826791775,
+        text:'しんじゅくえき が クリックされた！' }
+    ];
+
+    //### ポップアップの表示位置に関する定義 ###
+    // 本サンプルでは、ポップアップ表示時、ポップアップが画面中心付近で、その下にマーカーが表示される
+    // ように地図を移動します。このとき、マーカーの緯度経度を基準として、地図中心座標の上方向にシフト
+    // する量をピクセル値で指定します。
+    var mapX0 = 330;  // 地図DIVタグの中心座標X値
+    var mapY0 = 140;  // 地図DIVタグの中心座標Y値
+    var mapOffsetY = 60;  // 表示位置下オフセット量
+
+    //### 地図座標移動のアニメ効果に関する定義 ###
+    // 本サンプルでは、現在地から指定された緯度経度に徐々にスクロールする関数"smoothMovePosition"
+    // を用意します。ここで定義するパラメータによって、コマ数や表示速度を指定します。
+    var posArrayCount = 10;  // 移動コマ数
+    var deltaTime = 10;  // １コマあたりの時間。単位はms。
+
+    //### マーカーに関する定義 ###
+    var iconSizeX = 84, iconSizeY = 100;  // マーカー画像のサイズ
+    var iconOffsetX = -42, iconOffsetY = -92;  // マーカー画像のオフセット
+    var iconImageUrl = './img/c.png';  // マーカー画像のURL
+
+    //### その他変数 ###
+    var popupShow = false;  // ポップアップ表示の状態変数
+    var posArray = [];  // 地図座標移動のアニメ効果における座標配列
+    var callbackForMovPos = null;  // 地図座標移動のアニメ効果で使うコールバック関数
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        mapStyle : 'rpg_pc',
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーを追加します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // マーカーを作成します。
+      for( var i=0; i<pointData.length; i++ ) {
+
+        // マーカー　フィーチャー識別子作成および条件を設定します。
+        var id = 'marker#'+i;
+        var opt = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          imageUrl : iconImageUrl,
+          imageSize : new Mfapi.Util.ScreenSize(iconSizeX, iconSizeY),
+          imageOffset : new Mfapi.Util.ScreenPoint(iconOffsetX, iconOffsetY),
+          imageOpacity : 1.0
+        };
+
+        // マーカーを作成しレイヤーに追加します。
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(opt, id);
+      }
+
+      // マーカークリックイベントのコールバック関数を設定します。
+      Mfapi.Events.onMarkerClick = markerClick;
+
+      // 地図クリックイベントのコールバック関数を設定します。
+      //
+      // ポップアップを消す処理のInternet Explorer向けの対策です。
+      // (解説)
+      // 　ポップアップが表示されるとき、下記優先順位で表示しています。
+      // 　　①ポップアップコンテンツ(ID=popup_contentのDIVタグ)
+      // 　　②ポップアップ画像(IMAGEタグ)
+      // 　　③ポップアップベース(ID=popup_baseのDIVタグ。黒い半透明の地図と同じ大きさの矩形)
+      // 　　④地図(ID=sample_mapのDIVタグ)
+      // 　　　→①、②は③の子階層に属しているため、③、④より上に表示します。
+      // 　　　　①は②と同階層ですが、HTMLファイル上、②の後に記述されているため、②より上に表示します。
+      // 　　　　③は④と同階層ですが、z-indexを設定して、④より上に表示されるようにしています。
+      // 　　　　なお、HTMLファイル上は③のほうが④より後に記述されています。
+      // 　これに対し、以下のイベント登録を実施します。(下方のDIVの記述参照）
+      // 　　DIVタグ③：マウスダウン検出でポップアップを消す関数hidePopupを呼びます。
+      // 　この実装によって、ポップアップ表示後、黒い半透明部分とその子階層のポップアップ自身上で
+      // 　マウスダウンを検出したら、ポップアップが消える仕様を実現しています。
+      // 　しかし、Internet Explorer8等では、同一階層に複数DIVが存在している場合は、
+      // 　z-indexで指定した表示優先順位が考慮されず、HTMLファイル上で最初に記述されているDIVが
+      //   マウスイベントを先に取得する動作となります。そのため、③にイベントが伝播しない問題あります。
+      //   そこで、④でマウスダウンの代わりにクリックイベント時に関数hidePopupを呼ぶようにしています。
+      Mfapi.Events.onMapClick = hidePopup;
+
+    }
+
+    //### マーカークリックイベントのコールバック関数 ###
+    function markerClick(screenPosition,mapPosition,featureId,directAction) {
+
+      // ポップアップを消す処理のInternet Explorer向けの対策です。
+      if(popupShow==true) {
+        hidePopup();
+        return;
+      }
+
+      // クリックされたマーカーの番号を取得します。
+      var i = parseInt(featureId.substr(7,featureId.length-7));
+
+      // ポップアップで表示するテキストを設定します。
+      document.getElementById('popup_label').innerHTML=pointData[i].text;
+
+      //### スクロール後の地図中心緯度経度の計算 ###
+      // マーカーが画面中心から｢offsetPopupY｣ピクセル分下に表示することを前提に、中心緯度経度を計算します。
+      // 　①地図中心の緯度経度を取得
+      // 　②画像中心のスクリーン座標から｢offsetPopupY｣ピクセル分オフセットした座標を緯度経度に変換
+      // 　③①、②の結果から緯度方向の差分を計算
+      // 　④該当マーカーの座標を取得
+      // 　⑤④の座標から③の値分オフセットした緯度経度を計算
+      var mapPoint0 = Mfapi.Map.getCenterPosition();
+      var mapPoint1 = Mfapi.Map.getLonLatFromScreenPosition(new Mfapi.Util.ScreenPoint(mapX0,mapY0+mapOffsetY));
+      var deltaLat = mapPoint1.lat - mapPoint0.lat;
+      var markerPoint = Mfapi.Features.Marker[featureId].getPosition();
+      var newMapPoint = new Mfapi.Util.LonLat(markerPoint.lon,markerPoint.lat-deltaLat);
+
+      // 地図スクロールアニメ処理の呼び出します。
+      // アニメ処理が完了したら呼び出すコールバック関数として"showPopup"(ポップアップ表示処理)を指定します。
+      smoothMovePosition(newMapPoint,showPopup);
+    }
+
+    //### ポップアップ表示処理 ###
+    function showPopup() {
+      if( popupShow == false ) {
+        document.getElementById('popup_base').style.visibility = 'visible';
+        popupShow = true;
+      }
+    }
+
+    //### ポップアップ非表示処理 ###
+    function hidePopup() {
+      if( popupShow == true ) {
+        document.getElementById('popup_base').style.visibility = 'hidden';
+        popupShow = false;
+      }
+    }
+
+    //### 地図スクロールアニメ処理 ###
+    // タイマー機能を使って、指定された緯度経度に少しずつ移動する機能です。
+    // この関数では補間点を計算して、タイマーで処理を繰り返す移動処理を呼び出します。
+    function smoothMovePosition(newPos,callback) {
+
+      // 現在の緯度経度を取得します。
+      var oldPos = Mfapi.Map.getCenterPosition();
+
+      // 指定された緯度経度と現在の緯度経度を比較します。
+      // ピクセル単位で移動量がゼロの場合、指定されたコールバック関数を呼び出します。
+      var newScreenPos = Mfapi.Map.getScreenPositionFromLonLat(newPos);
+      var oldScreenPos = Mfapi.Map.getScreenPositionFromLonLat(oldPos);
+      if( parseInt(newScreenPos.x) == parseInt(oldScreenPos.x)
+       && parseInt(newScreenPos.y) == parseInt(oldScreenPos.y) ) {
+        callback();
+      }
+
+      // 補間点を計算します。
+      for( var i=0; i<posArrayCount; i++) {
+        posArray[i] = new Mfapi.Util.LonLat(
+          oldPos.lon+(i+1)/posArrayCount*(newPos.lon-oldPos.lon),
+          oldPos.lat+(i+1)/posArrayCount*(newPos.lat-oldPos.lat));
+      }
+
+      // コールバック関数を変数に格納します。
+      callbackForMovPos = callback;
+
+      // 地図移動処理の呼び出します。
+      moveTimerFunc(0);
+    }
+
+    //### 地図移動処理 ###
+    function moveTimerFunc(index) {
+
+      // 地図中心緯度経度の移動とインデックス更新を行います。
+      Mfapi.Map.setCenterPosition(posArray[index++]);
+
+      // 移動処理が全て完了したら、指定されたコールバック関数を呼び出します。
+      if(index>=posArray.length) {
+        if( callbackForMovPos!= null )
+          callbackForMovPos();
+
+      // 移動処理が完了してなければ、再度タイマー処理で、本処理を呼び出します。
+      } else {
+        var funcText = "moveTimerFunc("+index+")";
+        setTimeout(funcText, deltaTime);
+      }
+    }
+
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+  <div id='popup_base' onmousedown='hidePopup();'>
+    <div id='popup'>
+      <div><img src='img/d.png'></div>
+      <div id='popup_content'><label id='popup_label' class='item1' /></div>
+    </div>
+  </div>
+</body>
+</html>

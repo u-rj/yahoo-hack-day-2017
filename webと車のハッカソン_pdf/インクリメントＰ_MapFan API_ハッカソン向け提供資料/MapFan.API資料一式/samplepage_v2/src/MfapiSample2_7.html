@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-7.地図領域内のマーカー情報取得】</title>
+  <style type="text/css">
+    #sample_map {
+      float: left;
+      width: 450px;
+      height: 280px;
+      margin: 5px;
+      padding: 0px;
+    }
+    #info {
+      float: left;
+      margin: 2px;
+      padding: 2px 1em 2px 0.5em;
+      background-color:#eeeeee;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      // ポップアップ一括非表示モード(hidePopUpOnMapClick)にtrueを設定します。
+      // ポップアップの単一表示モード(singlePopUp)にtrueを設定します。
+      // ポップアップの表示タイミング(popUpDisplayMode)に2を設定します。
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094, 35.68119593467379),
+        mapScale : 11,
+        hidePopUpOnMapClick : true,
+        singlePopUp : true,
+        popUpDisplayMode : 2
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### 地点リスト ###
+      var pointData = [
+        { id: 'tokyo',
+          name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+          text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/a.gif', width:48, height:48, x:-24, y:-36 },
+        { id: 'shinbashi',
+          name: '新橋営業所', lon: 139.75821002138233, lat: 35.66657238126213,
+          text: '<div><b>新橋営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 10:00-19:00</div>',
+          markerType: 1 },
+        { id: 'toyosu',
+          name: '豊洲配送事業所', lon: 139.7959191978587, lat: 35.655211407306176,
+          text: '<div><b>豊洲配送事業所</b><br>tel 03-XXXX-XXXX</div>',
+          imageUrl:'./img/b.gif', width:48, height:48, x:-24, y:-30  },
+        { id:'ariake',
+          name: '有明駅営業所', lon: 139.79315890678254, lat: 35.63467955160454,
+          text: '<div><b>有明駅営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 11:00-21:00</div>',
+          markerType: 1 },
+        { id: 'shinagawa',
+          name: '品川営業所', lon: 139.73875357500563, lat: 35.62850770123775,
+          text: '<div><b>品川営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-19:00</div>',
+          markerType: 1 },
+        { id: 'shibuya',
+          name: '渋谷営業所', lon: 139.70134957426947, lat: 35.65864567145413,
+          text: '<div><b>渋谷営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-21:00</div>',
+          markerType: 1 },
+        { id:'shinjyuku',
+          name: '新宿営業所', lon: 139.70090283767686, lat: 35.68851826791775,
+          text: '<div><b>新宿営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 ２４時間営業</div>',
+          markerType: 6 }
+      ];
+
+      //### レイヤー追加 ###
+      // マーカーとポップアップを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+      // サークルを表示するためのジオメトリーレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### マーカー、ポップアップ作成処理 ###
+      for( var i=0; i<pointData.length; i++ ) {
+
+        //### ポップアップ作成処理 ###
+
+        // ポップアップのフィーチャー識別子を重複させないため、インデックスを指定しています。
+        var popUpId = 'popup_'+pointData[i].id;
+        // ポップアップ作成条件に初期表示は表示OFFに指定しています。
+        var popUpOpt = {
+          size : new Mfapi.Util.ScreenSize(180,80),
+          contentHtml : pointData[i].text,
+          visible : false
+        };
+
+        // ポップアップをマーカーと紐付けるため、ポップアップをFeaturesクラスに登録します。
+        Mfapi.Features.createPopUp(popUpOpt, popUpId);
+
+        //### マーカー作成処理 ###
+
+        // マーカーのフィーチャー識別子を重複させないため、インデックスを指定しています。
+        var markerId = 'marker_'+pointData[i].id;
+        // マーカー作成条件にポップアップのフィーチャー識別子を指定します。
+        var markerOpt = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : popUpId
+        };
+        // 地点リストに応じてマーカーの作成条件に設定値を追加します。
+        if( pointData[i].imageUrl !== undefined ) {
+          // ユーザー指定イメージパス、イメージサイズ、表示位置、不透明度を指定します。
+          markerOpt.imageUrl = pointData[i].imageUrl;
+          markerOpt.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+          markerOpt.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+          markerOpt.imageOpacity = 0.8;
+        } else {
+          // ユーザ指定イメージパスがない場合に、マーカータイプを指定します。
+          markerOpt.markerType = pointData[i].markerType;
+        }
+
+        // マーカーレイヤーにマーカーを登録します。
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+
+      }
+
+      //### サークル作成 ###
+      // 領域と同じ大きさのサークルを作成します。
+
+      var circleId = 'circle'; // サークルのフィーチャー識別子
+
+      // サークルのの作成条件を設定します。
+      var circleOpt = {
+        position : options.centerPosition,
+        radius : 4000,
+        opacity : 0.3,
+      };
+
+      // ジオメトリレイヤーにサークルを登録します。
+      Mfapi.Map.GeometryLayer['gLayer'].addCircle(circleOpt, circleId);
+
+      // 領域内のマーカーのフィーチャー識別子を取得します。
+      var rangeMarkers = Mfapi.Features.getMarkerInRange(options.centerPosition, circleOpt.radius);
+
+      // 左の情報表示エリアに領域内のマーカーフィーチャー識別子を表示します。
+      var info = document.getElementById('info');
+      info.innerHTML = 'サークル内のマーカー';
+      info.innerHTML += '<p><ul>';
+      for (var i = 0, len = rangeMarkers.length; i < len; i++) {
+        for (var key in Mfapi.Features.Marker) {
+          // マーカーのオブジェクト比較を行い、一致する場合は、情報エリアに追加します。
+          if (Mfapi.Features.Marker[key] === rangeMarkers[i].marker) {
+            info.innerHTML += "<li>"+key+"</li>";
+          }
+        }
+      }
+      info.innerHTML += '</ul></p>';
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+  <div id='info'></div>
+</body>
+</html>

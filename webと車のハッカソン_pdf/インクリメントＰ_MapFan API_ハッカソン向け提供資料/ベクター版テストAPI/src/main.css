@@ -1,0 +1,44 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+/*パラメータ入力エリア*/
+#info_window {
+    padding: 2px;
+    position: absolute;
+    top: 20px;
+    right: 0px;
+    width: 300px;
+    height: 360px;
+    background-color: #eeeeee;
+    z-index: 2000000;
+}
+
+/*ポップアップ*/
+.mapboxgl-popup-content {
+    background-color: #eb6ea5;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+    border-top-color: #eb6ea5;
+}
+
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+    border-bottom-color: #eb6ea5;
+}
+
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+    border-right-color: #eb6ea5;
+}
+
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+    border-left-color: #eb6ea5;
+}

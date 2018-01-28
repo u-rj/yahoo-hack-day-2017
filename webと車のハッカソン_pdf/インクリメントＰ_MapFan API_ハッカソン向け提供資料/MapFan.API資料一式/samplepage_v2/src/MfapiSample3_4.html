@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-4.ポイント作成】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### ジオメトリーレイヤー作成処理 ###
+      // ポイントを表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### ポイント作成処理 ###
+      var pointIdPrefix = 'point_';      // ポイントのフィーチャー識別子のプレフィックス
+
+      // ポイントの作成条件を設定します。
+      var pointOpt = {
+        edgeColor : '#ff0000', // 枠線の色
+        edgeWidth : 1,         // 枠線の幅
+        fillColor : '#ff0000', // 塗り色
+        opacity : 0.8,         // 不透明度
+        positions : null,      // 緯度経度※作成時に後述のpointsから取得します
+        width : 10,            // 点幅
+        visible : true         // 表示状態
+      };
+      // ポイント位置情報を設定します。
+      var points = [
+        new Mfapi.Util.LonLat(139.7006928036672,35.68961425420631),    // 新宿駅
+        new Mfapi.Util.LonLat(139.69745031099612,35.700751497234926),  // 大久保駅
+        new Mfapi.Util.LonLat(139.68493810396686,35.706241989984754),  // 東中野駅
+        new Mfapi.Util.LonLat(139.66573110323358,35.70580811283242),   // 中野駅
+        new Mfapi.Util.LonLat(139.64944234591596,35.70530453629846),   // 高円寺駅
+        new Mfapi.Util.LonLat(139.63572850925237,35.70494035144415),   // 阿佐ヶ谷駅
+        new Mfapi.Util.LonLat(139.6203838895091,35.70450646720755)     // 荻窪駅
+      ];
+
+      // ジオメトリーレイヤーにポイントを登録します。
+      for (var i=0,len=points.length; i < len; i++) {
+        pointOpt.position = points[i];
+        var pointId = pointIdPrefix + (i + 1);
+        Mfapi.Map.GeometryLayer['gLayer'].addPoint(pointOpt,pointId);
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

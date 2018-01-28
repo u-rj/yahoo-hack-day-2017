@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-10.ラベルとマーカーの関連付け】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+    .label {
+       margin: 0;
+       padding: 0 5px;
+       background-color: #fff;
+       border: 1px solid #000;
+     }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###-
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094, 35.68119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### マーカーレイヤー追加 ###
+      // マーカーとラベルを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### マーカー作成処理 ###
+
+      var markerId = 'marker_tokyo'; // マーカーのフィーチャー識別子
+      // マーカーの作成条件を設定します。
+      var markerOpt = {
+        position : new Mfapi.Util.LonLat(139.7672311841094, 35.68119593467379),
+      };
+      // マーカーレイヤーにマーカーを登録します。
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+
+      //### ラベル作成処理 ###
+
+      var labelId = 'label_tokyo'; // ラベルのフィーチャー識別子
+      // ラベルの作成条件を設定します。
+      var labelOpt = {
+        markerKey : markerId,      // ラベルと紐付けを行うマーカーのフィーチャー識別子
+        position : new Mfapi.Util.LonLat(139.7672311841094, 35.68119593467379),
+        offset : new Mfapi.Util.ScreenPoint(10, 20),
+        contentHtml : '<p class="label">東京駅</p>',
+        visible : true
+      };
+
+      // マーカーレイヤーにラベルを登録します。
+      Mfapi.Map.MarkerLayer['mLayer'].addLabel(labelOpt, labelId);
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

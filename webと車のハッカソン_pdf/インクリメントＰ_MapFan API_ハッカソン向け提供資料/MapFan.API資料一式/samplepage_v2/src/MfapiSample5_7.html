@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-7.マーカー移動（タッチ操作）】</title>
+  <style type="text/css">
+    body, html {
+      overflow: hidden;
+      height: 100%;
+    }
+    #sample_map {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      width: 640px;
+      height: 260px;
+      margin: 0px;
+    }
+    #face_layer {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 640px;
+      height: 260px;
+      margin: 0px;
+      z-index: 5000001;
+      display: none;
+      background-color: #808080;
+      opacity: 0.2;
+      filter: alpha(opacity=20);
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
+    }
+    #moving_marker {
+      position: absolute;
+      z-index: 5000000;
+      left: 0px;
+      top: 0px;
+      display: none;
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### マーカー移動（タッチ操作）###
+    // 処理フロー解説：
+    //   ①地図のマーカーレイヤーに、全マーカーを登録します。
+    //   ②マーカーのタップを検出したら、対象マーカーを地図のマーカーレイヤーから削除し、地図全体を覆う
+    //     "face_layer"タグと移動中のマーカーを示す"moving_marker"タグを表示します。
+    //   ③"face_layer"タグ上でタッチスタートイベントを検出し、それが"moving_marker"タグの表示範囲外の
+    //     場合、"face_layer"タグと"moving_marker"タグを非表示として、緯度経度を更新して、地図のマー
+    //     カーレイヤーに同じ位置で再登録します。
+    //   ④"face_layer"タグ上でタッチムーブイベントを検出したら、"moving_marker"タグを移動させます。
+    //     このとき、地図画面枠付近にきたら、地図がスクロールする処理を有効にします。
+    //   ⑤"face_layer"タグ上でタッチエンドイベントを検出したら、"face_layer"タグと"moving_marker"タグ
+    //     を非表示とした後、緯度経度を更新して、地図のマーカーレイヤーに再登録します。
+
+    //### 地点リスト ###
+    var pointData = [
+      { name: '東京駅', lon: 139.7672311841094, lat: 35.68119593467379 },
+      { name: '新橋駅', lon: 139.75821002138233, lat: 35.66657238126213 },
+      { name: '豊洲駅', lon: 139.7959191978587, lat: 35.655211407306176 },
+      { name: '有明駅', lon: 139.79315890678254, lat: 35.63467955160454 },
+      { name: '品川駅', lon: 139.73875357500563, lat: 35.62850770123775 },
+      { name: '渋谷駅', lon: 139.70134957426947, lat: 35.65864567145413 },
+      { name: '新宿駅', lon: 139.70090283767686, lat: 35.68851826791775 }
+    ];
+
+    //### マーカーに関する定義 ###
+    var markerSizeX = 84, markerSizeY = 100;  // マーカー画像のサイズ
+    var markerOffsetX = -43, markerOffsetY = -91;  // マーカー画像のオフセット
+    var markerImageUrl = './img/c.png';  // マーカー画像のURL
+
+    //### マーカードラッグに関する共通変数 ###
+    var dragFlag = false;  // ドラッグモードフラグ
+    var dragOffsetX, dragOffsetY;  // ドラッグ開始時のマーカー上でのオフセット座標
+    var dragObj = null;  // ドラッグ時に表示するDIVオブジェクト
+    var faceLayerObj = null;  // フェイスレイヤーDIVオブジェクト(ドラッグ時に地図を覆う半透明のDIV)
+    var prevPointerX, prevPointerY;  // カーソル座標の保存値
+    var targetIndex = 0; // 移動対象のマーカーの識別番号(識別子の番号部分)
+    var targetMarkerPos = null;  // 移動対象のマーカータップ時のスクリーン座標
+
+    //### マーカーの移動範囲および地図スクロールに関する定義 ###
+    var mapWidth = 640, mapHeight = 260;  // 地図DIVタグのサイズ
+    var pointerXMin = -markerOffsetX;  // ポインターX最小値
+    var pointerXMax = mapWidth-1-markerSizeX-markerOffsetX;  // ポインターX最大値
+    var pointerYMin = -markerOffsetY;  // ポインターY最小値
+    var pointerYMax = mapHeight-1-markerSizeY-markerOffsetY;  // ポインターY最大値
+    var mapScrollIntevalTime = 100;  // 地図スクロールの処理間隔（単位:ms）
+    var mapScrollEdgeX = 0.1;  // スクロール枠水平方向の範囲定数(0.1ならば、画面の左右10%が枠部分となる)
+    var mapScrollEdgeY = 0.1;  // スクロール枠垂直方向の範囲定数(0.1ならば、画面の上下10%が枠部分となる)
+    var mapScrollDeltaX = 20;  // １回の処理での水平方向のスクロール量(単位:ピクセル)
+    var mapScrollDeltaY = 20;  // １回の処理での垂直方向のスクロール量(単位:ピクセル)
+
+    //### 地図スクロールに関する共通変数 ###
+    var mapScrollDx=0, mapScrollDy=0;  // スクロール移動方向(=-1/0/+1)
+    var intervalId=null;  // タイマー処理のID
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        mapStyle : 'rpg_pc',
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.66119593467379),
+        mapScale : 12
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // マーカーレイヤーを追加します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      // マーカーを作成します。
+      for( var i=0; i<pointData.length; i++ ) {
+        addMarker(i);
+      }
+
+      // マーカーポインタースタートイベントのコールバック関数を設定します。
+      Mfapi.Events.onMarkerPointerStart = markerPointerStart;
+
+      // ドラッグ時のマーカー、フェイスレイヤーのDIVオブジェクトを取得します。
+      faceLayerObj = document.getElementById('face_layer');
+      dragObj = document.getElementById("moving_marker");
+
+      // フェイスレイヤーDIVタグのイベントハンドラーを設定します。
+      faceLayerObj.ontouchstart=faceLayerPointerStart;
+      faceLayerObj.ontouchmove=faceLayerPointerMove;
+      faceLayerObj.ontouchend=faceLayerPointerEnd;
+    }
+
+    //### マーカーポインタースタートイベントのコールバック関数 ###
+    function markerPointerStart(screenPosition,mapPosition,featureId,directAction,buttonType) {
+
+      // フェイスレイヤーを表示します。
+      faceLayerObj.style.display='block';
+
+      // 選択したマーカーの識別番号(識別子の数値部分)を保存します。
+      targetIndex = parseInt(featureId.substr(7));
+
+      // 選択したマーカーの緯度経度(ピンの先部分)を取得し、スクリーン座標に変換します。
+      targetMarkerPos = Mfapi.Map.getScreenPositionFromLonLat(Mfapi.Features.Marker[featureId].getPosition());
+
+      // 選択したマーカーを、一旦、Mfapiのマーカーレイヤーから削除します。
+      Mfapi.Map.MarkerLayer['mLayer'].removeFeature(featureId);
+
+      // ドラッグ中に表示するマーカー左上のスクリーン座標を設定します。
+      dragObj.style.left = (targetMarkerPos.x +markerOffsetX +parseInt(faceLayerObj.offsetLeft)) +'px';
+      dragObj.style.top = (targetMarkerPos.y +markerOffsetY +parseInt(faceLayerObj.offsetTop)) +'px';
+
+      // ドラッグ中に表示するマーカーを表示します。
+      dragObj.style.display='block';
+    }
+
+    //### フェイスレイヤー　ポインタースタート(タッチスタート)のイベントハンドラー ###
+    function faceLayerPointerStart(objEvent) {
+
+      // タッチイベントを取得します。
+      if(objEvent.changedTouches!==undefined && objEvent.changedTouches.length>=1)
+        objEvent=objEvent.changedTouches.item(0);
+      else if(objEvent.touches!==undefined && objEvent.touches.length>=1)
+        objEvent=objEvent.touches.item(0);
+      else
+        return false;
+
+      if(dragFlag==false) {
+        // ポインターの座標情報を取得します。
+        var pointerX = parseInt(objEvent.clientX)-parseInt(faceLayerObj.offsetLeft);
+        var pointerY = parseInt(objEvent.clientY)-parseInt(faceLayerObj.offsetTop);
+
+        // マーカーの座標範囲を計算します。
+        var markerXmin = parseInt(dragObj.style.left)-parseInt(faceLayerObj.offsetLeft);
+        var markerYmin = parseInt(dragObj.style.top)-parseInt(faceLayerObj.offsetTop);
+        var markerXmax = markerXmin + markerSizeX -1;
+        var markerYmax = markerYmin + markerSizeX -1;
+
+        // マーカー内のタップでの処理を行います。
+        if(pointerX>=markerXmin && pointerX<=markerXmax && pointerY>=markerYmin && pointerY<=markerYmax ) {
+
+          // ドラッグモードフラグを有効にします。
+          dragFlag = true;
+
+          // マーカー左上座標とポインターのカーソル座標と差分を保存します。
+          dragOffsetX = pointerX - targetMarkerPos.x;
+          dragOffsetY = pointerY - targetMarkerPos.y;
+
+          // ポインターのカーソル座標を保存します。
+          prevPointerX = pointerX;
+          prevPointerY = pointerY;
+
+        // マーカー内のタップ以外の処理を行います。(元に戻す処理)
+        } else {
+
+          // フェイスレイヤーを非表示にします。
+          faceLayerObj.style.display='none';
+
+          // ドラッグ中に表示するマーカーを非表示にします。
+          dragObj.style.display='none';
+
+          // マーカーを追加します。
+          addMarker(targetIndex);
+        }
+      }
+      return false;
+    }
+
+    //### フェイスレイヤー　ポインタームーブ(タッチムーブ)のイベントハンドラー ###
+    function faceLayerPointerMove(objEvent) {
+
+      // タッチイベントを取得します。
+      if(objEvent.changedTouches!==undefined && objEvent.changedTouches.length>=1)
+        objEvent=objEvent.changedTouches.item(0);
+      else if(objEvent.touches!==undefined && objEvent.touches.length>=1)
+        objEvent=objEvent.touches.item(0);
+      else
+        return false;
+
+      // ドラッグモードフラグ無効時の処理を行います。(例外対応)
+      if(!dragFlag) {
+        stopMapScroll();
+        return false;
+      }
+
+      // ポインターのカーソル座標を計算します。
+      var pointerX = calcPointerX(objEvent);
+      var pointerY = calcPointerY(objEvent);
+
+      // ドラッグ中に表示するマーカー左上のスクリーン座標を設定します。
+      var dragObjX = parseInt(dragObj.offsetLeft) + pointerX - prevPointerX;
+      var dragObjY = parseInt(dragObj.offsetTop) + pointerY - prevPointerY;
+      dragObj.style.left = dragObjX + "px";
+      dragObj.style.top = dragObjY + "px";
+
+      // 地図スクロール制御処理を呼びます。
+      mapScrollCtrl(dragObjX,dragObjY);
+
+      // ポインターのカーソル座標を保存します。
+      prevPointerX = pointerX;
+      prevPointerY = pointerY;
+
+      return false;
+    }
+
+    //### フェイスレイヤー　ポインターエンド(タッチエンドアップ)のイベントハンドラー ###
+    function faceLayerPointerEnd(objEvent){
+
+      // タッチイベントを取得します。
+      if(objEvent.changedTouches!==undefined && objEvent.changedTouches.length>=1)
+        objEvent=objEvent.changedTouches.item(0);
+      else if(objEvent.touches!==undefined && objEvent.touches.length>=1)
+        objEvent=objEvent.touches.item(0);
+      else
+        return false;
+
+      // ドラッグモードフラグ無効時の処理を行います。(例外対応)
+      if(!dragFlag) {
+        stopMapScroll();
+        return false;
+      }
+
+      // ポインターのカーソル座標を計算します。
+      var pointerX = calcPointerX(objEvent);
+      var pointerY = calcPointerY(objEvent);
+
+      // フェイスレイヤーを非表示にします。
+      faceLayerObj.style.display='none';
+
+      // ドラッグ中に表示するマーカーを非表示にします。
+      dragObj.style.display='none';
+
+      // マーカーの緯度経度(ピンの先部分)を計算し、地点データを更新します。
+      var markerScreenPos = new Mfapi.Util.ScreenPoint( pointerX-dragOffsetX, pointerY-dragOffsetY );
+      var markerMapPos = Mfapi.Map.getLonLatFromScreenPosition( markerScreenPos );
+      pointData[targetIndex].lon = markerMapPos.lon;
+      pointData[targetIndex].lat = markerMapPos.lat;
+
+      // マーカーを追加します。
+      addMarker(targetIndex);
+
+      // 地図スクロールを停止します。
+      stopMapScroll();
+
+      // ドラッグモードフラグを無効にします。
+      dragFlag = false;
+
+      return false;
+    }
+
+    //### 地図スクロール制御処理 ###
+    // ドラッグしているマーカーが地図の｢枠｣付近にいる場合、地図をスクロールさせる機能です。
+    // 枠付近と判断した場合、スクロール方向をmapScrollDx,mapScrollDyに設定します。
+    // mapScrollDx,mapScrollDyがゼロでない場合、タイマーでスクロール処理を繰り返します。
+    function mapScrollCtrl(dragObjX,dragObjY) {
+
+      // 水平方向のスクロール判定を行います。
+      if( dragObjX < mapWidth * mapScrollEdgeX ) mapScrollDx = -1;
+      else if( dragObjX +markerSizeX > mapWidth *(1-mapScrollEdgeX)) mapScrollDx = +1;
+      else mapScrollDx = 0;
+
+      // 垂直方向のスクロール判定を行います。
+      if( dragObjY < mapHeight * mapScrollEdgeY ) mapScrollDy = -1;
+      else if( dragObjY +markerSizeY > mapHeight *(1-mapScrollEdgeY)) mapScrollDy = +1;
+      else mapScrollDy = 0;
+
+      // スクロール処理を行います。
+      if( mapScrollDx!=0 || mapScrollDy!=0 ) {
+
+        if(intervalId==null) {
+          intervalId = window.setInterval( function () {
+            var center = new Mfapi.Util.ScreenPoint(
+              mapWidth/2+mapScrollDx*mapScrollDeltaX, mapHeight/2+mapScrollDy*mapScrollDeltaY );
+            Mfapi.Map.setCenterPosition( Mfapi.Map.getLonLatFromScreenPosition(center) );
+          }, mapScrollIntevalTime );
+        }
+
+      } else {
+        stopMapScroll();
+      }
+    }
+
+    //### 地図スクロール停止処理 ###
+    function stopMapScroll() {
+      // タイマーを無効にします。
+      if(intervalId!=null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+      // スクロール方向の変数をリセットします。
+      mapScrollDx=0;
+      mapScrollDy=0;
+    }
+
+    //### ポインタースクリーン座標Xの計算 ###
+    function calcPointerX(objEvent) {
+
+      // イベントパラメータから座標を計算します。
+      var pointerX = parseInt(objEvent.clientX)-parseInt(faceLayerObj.offsetLeft);
+
+      // 地図の範囲外の場合、最小値または最大値を設定します。
+      if( pointerX <= pointerXMin+dragOffsetX ) pointerX = pointerXMin+dragOffsetX;
+      if( pointerX >= pointerXMax+dragOffsetX ) pointerX = pointerXMax+dragOffsetX;
+
+      return pointerX;
+    }
+
+    //### ポインタースクリーン座標Yの計算 ###
+    function calcPointerY(objEvent) {
+
+      // イベントパラメータから座標を計算します。
+      var pointerY = parseInt(objEvent.clientY)-parseInt(faceLayerObj.offsetTop);
+
+      // 地図の範囲外の場合、最小値または最大値を設定します。
+      if( pointerY <= pointerYMin+dragOffsetY ) pointerY = pointerYMin+dragOffsetY;
+      if( pointerY >= pointerYMax+dragOffsetY ) pointerY = pointerYMax+dragOffsetY;
+
+      return pointerY;
+    }
+
+    //### マーカー追加処理 ###
+    function addMarker(index) {
+
+      // マーカー　フィーチャー識別子作成および条件を設定します。
+      var id = 'marker#'+index;
+      var opt = {
+        position : new Mfapi.Util.LonLat(pointData[index].lon, pointData[index].lat),
+        imageUrl : markerImageUrl,
+        imageSize : new Mfapi.Util.ScreenSize(markerSizeX, markerSizeY),
+        imageOffset : new Mfapi.Util.ScreenPoint(markerOffsetX, markerOffsetY),
+        imageOpacity : 0.7
+      };
+
+      // マーカーを作成しレイヤーに追加します。
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(opt, id);
+    }
+
+  </script>
+</head>
+<body>
+  <div id='face_layer'></div>
+  <div id='sample_map'></div>
+  <img src='img/c.png' id='moving_marker' ondragstart="return false">
+</body>
+</html>

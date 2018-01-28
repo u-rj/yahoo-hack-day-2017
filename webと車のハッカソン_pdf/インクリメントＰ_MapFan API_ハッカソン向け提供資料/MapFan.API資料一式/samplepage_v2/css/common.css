@@ -1,0 +1,470 @@
+/*=====================================================
+common.css
+publicapi配下共通スタイル
+=====================================================*/
+/* -----
+　reset style
+----------------------------------------*/
+html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, abbr, address, cite, code, del, dfn, em, img, ins, kbd, q, samp, small, sub, sup, var, b, i, dl, dt, dd, fieldset, form, option, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, figcaption, figure, footer, header, hgroup, menu, nav, section, summary, time, mark, audio, video,.ex_btn ul {
+  margin:0;
+  padding:0;
+  outline:0;
+  border:0;
+  font-size:100%;
+  vertical-align:baseline;
+  -webkit-text-size-adjust:none;
+  font-weight:normal;
+}
+
+body {
+    font-family: 'ヒラギノ角ゴ Pro W3','Hiragino Kaku Gothic Pro','Meiryo','ＭＳ Ｐゴシック','MS PGothic',sans-serif;
+  font-size: 80%;
+    line-height: 1.5em;
+  color:#333;
+}
+
+/* 赤文字指定スタイル */
+.red {
+  color:#FF0000;
+}
+
+
+/* -----
+　link style
+----------------------------------------*/
+a {
+    color: #2946B4;
+    text-decoration: none;
+}
+a:link {
+    color: #2946B4;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #061652;
+    text-decoration: none;
+}
+
+
+a:hover,
+a:active {
+    color: #C5092F;
+    text-decoration: underline;
+}
+
+
+
+/* -----
+　header
+----------------------------------------*/
+#header {
+  display:block;
+  width:100%;
+  margin:10px auto 20px;
+  height:50px;
+  border-bottom:solid 4px #C5092F;
+}
+
+#header>.headContents {
+  display:block;
+  width:900px;
+  margin-right:auto;
+  margin-left:auto;
+}
+
+.logo{
+  display:block;
+  float:left;
+  width:155px;
+  height:41px;
+  background-image:url("../images/h_logo.gif");
+  background-repeat:no-repeat;
+  text-indent:-9999px;
+  overflow:hidden;
+}
+
+.logoTxt{
+  display:block;
+  height:45px;
+  padding-left:15px;
+  line-height:45px;
+  font-size:150%;
+  font-weight:bold;
+  overflow:hidden;
+}
+
+
+
+/* -----
+　Wrapper （大枠レイアウト）
+----------------------------------------*/
+.contentsWrapper {
+  display:block;
+  width:900px;
+  height:auto;
+  margin:0 auto;
+  padding:0;
+}
+
+.sideWrapper {
+  display:block;
+  float:left;
+  width:200px;
+  min-height:650px;
+  height: auto !important;
+  height: 650px;
+  margin:0 auto;
+  padding:0;
+}
+
+.mainWrapper {
+  display:block;
+  float:right;
+  width:680px;
+  margin:0 auto;
+  padding:0;
+}
+
+
+
+/* -----
+　footer
+----------------------------------------*/
+#footer {
+  clear:both;
+  display:block;
+  width:100%;
+  padding-top:10px;
+  text-align:center;
+  background-color:#E6E6E6;
+}
+
+#footer>.footContents {
+  display:block;
+  width:900px;
+  margin:0 auto;
+  text-align:center;
+}
+
+.footContents ul {
+  display:block;
+    list-style: none outside none;
+    width: 860px;
+  margin:0;
+  padding:0 0 10px 0;
+}
+
+.footContents ul li {
+    border-right: 1px solid #666666;
+    display: inline;
+    line-height: 1.2em;
+    margin-right: 4px;
+    padding: 2px 5px 0 0;
+}
+.footContents ul li#mapAbout {
+    border: medium none;
+}
+
+.footContents ul li a {
+    color: #666666;
+}
+
+#footer>.cpyright {
+  display:block;
+  width:100%;
+  padding:10px 0;
+  background-color:#000000;
+  color:#FFFFFF;
+  border-bottom:solid 4px #C5092F;
+}
+
+
+
+/* -------------------------------------
+ updateinfo
+----------------------------------------*/
+#updateinfo_link {
+  margin: 2px;
+  padding: 4px;
+}
+#updateinfo {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 720px;
+}
+#updateinfo_content {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  width: 680px;
+}
+#updateinfo_content table th.version {
+  width: 70px;
+}
+#updateinfo_content table th.update {
+  width: 80px;
+}
+#updateinfo_content table th.title {
+  width: 220px;
+}
+#updateinfo_content table th.content {
+  width: 270px;
+}
+
+#updateinfo_title {
+}
+
+#updateinfo_content table, #updateinfo_content td, #updateinfo_content th {
+  margin; 0;
+  padding: 5px;
+  border: 1px #888888 solid;
+}
+#updateinfo_content th {
+  font-weight:bold;
+  background-color:#f0f8ff;
+}
+
+#updateinfo_content table {
+  border-collapse: collapse;
+}
+
+/* -----
+　menuList
+----------------------------------------*/
+.menuList{
+  display:block;
+  list-style:outside none;
+  margin:0 0 0 0;
+  padding:0;
+}
+
+.menuList li{
+  display:block;
+  padding:10px 0 2px 3px;
+  border-top:solid 1px #aaaaaa;
+}
+.menuList li.last{
+  border-bottom:solid 1px #aaaaaa;
+}
+
+.menuList li a{
+  display:block;
+  height:20px;
+  padding-left:5px;
+  border-left:solid 2px #C5092F;
+  font-weight:bold;
+  line-height:1.5;
+  font-size: 12px;
+  /*\*/overflow: hidden;/**/
+}
+
+
+
+/* -----
+　contents
+----------------------------------------*/
+#contents {
+  width:100%;
+  display:block;
+}
+
+/* --見出し-- */
+h1 {
+  display:block;
+  margin-bottom:20px;
+  padding:10px;
+  background-color:#FFFFFF;
+  border-top:solid 1px #aaaaaa;
+  border-bottom:solid 1px #aaaaaa;
+}
+
+h1>p{
+  padding-left:5px;
+  border-left:solid 4px #C5092F;
+  font-size:130%;
+  font-weight:bold;
+}
+
+h2 {
+  display:block;
+  padding:6px 10px;
+  margin:20px 0 10px;
+  background-color:#b40028;
+}
+
+h2>p{
+  color:#FFFFFF;
+  font-size:120%;
+  font-weight:bold;
+}
+
+pre {
+  font-family: 'ヒラギノ角ゴ Pro W3','Hiragino Kaku Gothic Pro','Meiryo','ＭＳ Ｐゴシック','MS PGothic',sans-serif;
+  font-size: 90%;
+}
+
+/* --内容-- */
+.explain p{
+  margin:0 10px 10px;
+}
+
+.sampleBox {
+  padding:5px 10px;
+  border:solid 1px #AAAAAA;
+  word-break:break-all;
+}
+
+.termLink {
+  text-decoration:underline;
+  font-weight:bold;
+  font-size:120%;
+}
+
+.centerLink {
+  margin-bottom:15px;
+  text-align:center;
+}
+
+/* --テーブルレイアウト-- */
+.tableSpace {
+  display:block;
+  margin:0 10px 20px;
+}
+
+.tableSpace table{
+  display:block;
+  width:100%;
+  table-layout: fixed;
+}
+
+.tableSpace table tr th{
+  vertical-align:middle;
+  text-align:center;
+  background-color:#9BA1A8;
+  border:1px solid #AAAAAA;
+}
+
+.tableSpace table tr td{
+  padding:5px;
+  vertical-align:middle;
+  text-align:center;
+  border-left:1px solid #AAAAAA;
+  border-bottom:1px solid #AAAAAA;
+}
+
+.tableSpace table tr td.left{
+  text-align:left;
+  border-right:1px solid #AAAAAA;
+}
+
+/* -----
+　terms （利用規約）
+----------------------------------------*/
+.terms p{ /* 利用規約の文章用スタイル */
+  margin:0 10px 10px;
+}
+
+.divide {
+  margin:30px 0;
+  border:dashed 1px #AAAAAA;
+}
+
+
+/* -------------------------------------
+　地図表示エリア
+----------------------------------------*/
+#map{
+  width: 680px;
+  height: 300px;
+  border: 1px solid #ddd;
+}
+
+/* -------------------------------------
+　記事欄
+----------------------------------------*/
+#contents .article{
+  padding: 3px 5px;
+  background-color: #fafafa;
+  border: 1px solid #ddd;
+  height: 200px;
+  overflow: scroll;
+}
+
+
+/* -------------------------------------
+メニュー
+----------------------------------------*/
+ul.accordion {
+	background:#fff;
+	width:100%;
+	margin:0 auto 10px;
+	padding:5px;
+	font-size:11px;
+}
+ul.accordion a {
+	display:block;
+	padding:10px;
+	background-position:97% center;
+	background-repeat:no-repeat;
+	text-decoration:none;
+	color:#333;
+	font-weight:bold;
+}
+ul.accordion span {
+	display:block;
+	padding:10px;
+	background-position:97% center;
+	background-repeat:no-repeat;
+	color:#333;
+	font-weight:bold;
+}
+ul.accordion ul {
+	margin: 0;
+	padding: 0 0 0 5px;
+	display:none;
+}
+ul.accordion > li {
+	list-style-type:none;
+	background: -moz-linear-gradient(top, #eee, #fff);
+	background: -webkit-gradient(linear, left top, left bottom, from(#C5092F), to(#C5092F));
+	background: linear-gradient(to bottom, #C5092F, #C5092F);/* IE10+, W3C */
+}
+ul.accordion > li > p {
+	background: -moz-linear-gradient(top, #FFF, #DDD);
+	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DDD));
+	background: linear-gradient(to bottom, #FFF, #DDD);/* IE10+, W3C */
+	cursor:pointer;
+}
+ul.accordion > li > ul > li {
+	margin: 0;
+	padding: 0;
+	list-style-type:none; background:#FFF;
+	border-bottom:1px solid #EEE;
+	font-size: 11px;
+	font-weight:normal;
+}
+ul.accordion > li > ul > li > p {
+	background:#fff;
+}
+
+ul.accordion > li > ul > li > ul > li {
+	background:#FFF;
+	border-bottom:1px dotted #888;
+}
+ul.accordion > li > ul > li > ul > li:last-child {
+	border:none;
+}
+
+#btn_copy_to_clipboard {
+  float:right;
+}
+#example_code {
+  box-sizing:border-box;
+  width: 100%;
+  height: 200px;
+  background-color: #fafafa;
+  font-size: 90%;
+  border: 1px solid #e0e0e0;
+}

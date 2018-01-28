@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-9.ラベル非表示・削除】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+      position: relative;
+    }
+    #floating-panel {
+       width: 120px;
+       height: 90px;
+       position: absolute;
+       right: 5px;
+       top: -170px;
+       bottom: 0;
+       margin: auto;
+       z-index: 5;
+       background-color: #fff;
+       padding: 5px;
+       border: 1px solid #999;
+       text-align: center;
+       font-family: 'Roboto','sans-serif';
+       line-height: 30px;
+     }
+     #floating-panel input {
+       width: 120px;
+     }
+     .label {
+       margin: 0;
+       padding: 0 5px;
+       background-color: #fff;
+       border: 1px solid #000;
+     }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094, 35.68119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### マーカーレイヤー追加 ###
+      // ラベルを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### ラベル作成処理 ###
+
+      var labelId = 'label_tokyo';   // ラベルのフィーチャー識別子
+      // ラベルの作成条件を設定します。
+      var labelOptions = {
+        position : new Mfapi.Util.LonLat(139.7672311841094, 35.68119593467379),
+        offset : new Mfapi.Util.ScreenPoint(10, 10),
+        contentHtml : '<p class="label">東京駅</p>',
+        visible : true
+      };
+      // マーカーレイヤーにラベルを登録します。
+      Mfapi.Map.MarkerLayer['mLayer'].addLabel(labelOptions, labelId);
+
+      // 地図クリックイベントのコールバック関数を設定します。
+      Mfapi.Events.onMapClick = function (screenPosition, mapPosition) {
+        // ラベルを追加します。
+        addLabel(mapPosition);
+      };
+
+      //### ラベル追加処理 ###
+
+      // 地図上でクリック地点に緯度経度のラベルを追加します。
+      function addLabel(location) {
+        // ラベルのフィーチャー識別子を重複させないため、インデックスを作成します。
+        var index = (Mfapi.Features.Label ? Object.keys(Mfapi.Features.Label).length : 0) + 1;
+
+        //### ラベル作成処理 ###
+
+        var labelId = "label_" + index;  // ラベルのフィーチャー識別子
+        // ラベルの作成条件を設定します。
+        var labelOpt = {
+          position : location,
+          contentHtml : '<p class="label">ラベル('+index+')</p>'
+        }
+        // マーカーレイヤーにラベルを登録します。
+        Mfapi.Map.MarkerLayer['mLayer'].addLabel(labelOpt, labelId);
+      }
+    }
+
+    //### ラベル表示・非表示設定 ###
+    function setMapOnAll(isVisible) {
+      // 全てのラベルを参照し、ラベルの表示 ON-OFFを更新します。
+      for (var key in Mfapi.Features.Label) {
+        Mfapi.Features.Label[key].setOptions({visible: isVisible});
+      }
+    }
+
+    //### ラベル非表示 ###
+    function clearLabels() {
+      setMapOnAll(false);
+    }
+
+    //### ラベル表示 ###
+    function showLabels() {
+      setMapOnAll(true);
+    }
+
+    //### ラベル削除 ###
+    function deleteLabels() {
+      // ラベルを非表示にします。
+      clearLabels();
+      // 全てのラベルを参照し、ラベルの削除処理をします。
+      for (var key in Mfapi.Features.Label) {
+        Mfapi.Features.remove(key);
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'>
+    <div id="floating-panel">
+      <input id="clearLabels" onclick="clearLabels();" type=button value="ラベル非表示"><br>
+      <input id="showLabels" onclick="showLabels();" type=button value="ラベル表示"><br>
+      <input id="deleteLabels" onclick="deleteLabels();" type=button value="ラベル削除">
+    </div>
+  </div>
+</body>
+</html>

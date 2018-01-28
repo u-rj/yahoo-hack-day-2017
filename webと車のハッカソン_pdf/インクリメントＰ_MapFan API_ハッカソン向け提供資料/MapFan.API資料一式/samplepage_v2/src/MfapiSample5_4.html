@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【5-4.マウスムーブイベント】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+  #sample_map {
+    width: 660px;
+    height: 280px;
+  }
+  </style>
+  <!--緯度経度情報表示DIVのスタイル-->
+  <style type="text/css">
+    #lonlat_info {
+      position: absolute;
+      z-index: 5000000;
+      left: 150px;
+      top: 245px;
+      height: 18px;
+    }
+    .lonlat_value {
+      width: 280px;
+      background-color: #eeeeee;
+      font-family: monospace;
+      font-size: 10pt;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        mapOperationEnable: true,
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 12
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // 地図マウスムーブイベントのコールバック関数を設定します。
+      Mfapi.Events.onMapMouseMove = mapMouseMove;
+      Mfapi.Events.setEnableToUseMapMouseMoveEvent(true);
+
+    }
+
+    //### 地図マウスムーブイベントのコールバック関数 ###
+    function mapMouseMove(screenPosition,mapPosition) {
+      // 緯度経度のフォーマット処理の関数を定義します。
+      var formatDegree = function(value) {
+        return value.toFixed(8);
+      };
+      // 緯度経度を表示します。
+      document.getElementById('lonlat').value
+          = '経度:{lon} 緯度:{lat}'
+            .replace('{lon}', formatDegree(mapPosition.lon))
+            .replace('{lat}', formatDegree(mapPosition.lat))
+      ;
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+  <!--経度緯度情報表示DIVタグ-->
+  <div id='lonlat_info'>
+    <p><input type='text' id='lonlat' class='lonlat_value' readonly></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【6-1.「おもてなしマップ」表示】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <!--地図中心を示すパーツのアイコン画像とDIVのスタイル-->
+  <style type="text/css">
+    #center_image {
+      width: 34px;
+      height: 30px;
+    }
+    #center_div {
+      position: absolute;
+      z-index: 5000000;
+      left: 321px;
+      top: 133px;
+      pointer-events: none;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ルートAPIサーバを設定します。
+      Mfapi.routeHost = 'api-route-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      // "mapstyle"は地図表示スタイルを指定するプロパティです。
+      // "mapstyle"にカラーユニバーサルデザインに対応した設定値「'tourism_pc'」を設定します。
+      // 詳細は別紙「地図デザイン設定方法と表示イメージ」の仕様をご参照下さい。
+      var options = {
+        mapStyle       : 'tourism_pc',
+        logoSettings   : 'off',
+        lang           : 'ja',
+        centerPosition : new Mfapi.Util.LonLat(139.69782652169118,35.69313060143928),
+        mapScale       : 16
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      // ジオメトリーレイヤーを追加します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### サークル　条件設定 ###
+      // "edgeColor"はサークルの枠線の色を指定するプロパティです。
+      // "edgeColor"にカラーユニバーサルデザインに対応した設定値「#606060：グレー」を設定します。
+      // "fillColor"はサークルの塗り色を指定するプロパティです。
+      // "fillColor"にカラーユニバーサルデザインに対応した設定値「#777777：グレー」を設定します。
+      // 詳細は別紙「MapFanAPI_おもてなしマップご利用案内」の仕様をご参照下さい。
+      var circleOptions = {
+        edgeColor : '#606060', // 枠線の色
+        edgeWidth : '2',       // 枠線の幅
+        fillColor : '#777777', // 塗り色
+        opacity   : '0.5',     // 不透明度
+        position  : new Mfapi.Util.LonLat(139.69183625107152,35.69215748858982),
+        radius    : 120,       // 半径
+        visible   : true       // 表示状態
+      };
+
+      //### ポリライン　条件設定 ###
+      // "lineColor"はポリラインの線の色を指定するプロパティです。
+      // "lineColor"にカラーユニバーサルデザインに対応した設定値「#000000：黒」を設定します。
+      // 詳細は別紙「MapFanAPI_おもてなしマップご利用案内」の仕様をご参照下さい。
+      var polylineOptions = {
+        lineColor : '#000000', // 線の色
+        lineWidth : '2',       // 線の幅
+        opacity   : 1,         // 不透明度
+        positions : [
+                       new Mfapi.Util.LonLat(139.6933848251336,35.69130359092341),
+                       new Mfapi.Util.LonLat(139.6933848251336,35.69301138625623),
+                       new Mfapi.Util.LonLat(139.69443625107152,35.69215748858982),
+                       new Mfapi.Util.LonLat(139.69548767700945,35.69301138625623),
+                       new Mfapi.Util.LonLat(139.69548767700945,35.69130359092341)
+                    ],
+        visible   : true       // 表示状態
+      };
+
+      //### ポリゴン　条件設定 ###
+      // "edgeColor"はポリゴンの枠線の色を指定するプロパティです。
+      // "edgeColor"にカラーユニバーサルデザインに対応した設定値「#606060：グレー」を設定します。
+      // "fillColor"はポリゴンの塗り色を指定するプロパティです。
+      // "fillColor"にカラーユニバーサルデザインに対応した設定値「#777777：グレー」を設定します。
+      // 詳細は別紙「MapFanAPI_おもてなしマップご利用案内」の仕様をご参照下さい。
+      var polygonOptions = {
+        edgeColor : '#606060', // 枠線の色
+        edgeWidth : '2',       // 枠線の幅
+        fillColor : '#777777', // 塗り色
+        opacity   : 0.5,       // 不透明度
+        positions : [
+                       new Mfapi.Util.LonLat(139.69703625107152,35.69301138625623),
+                       new Mfapi.Util.LonLat(139.69794681264398,35.69258443742302),
+                       new Mfapi.Util.LonLat(139.69794681264398,35.69173053975662),
+                       new Mfapi.Util.LonLat(139.69703625107152,35.69130359092341),
+                       new Mfapi.Util.LonLat(139.69612568949907,35.69173053975662),
+                       new Mfapi.Util.LonLat(139.69612568949907,35.69258443742302),
+                       new Mfapi.Util.LonLat(139.69703625107152,35.69301138625623)
+                    ],
+        visible   : true       // 表示状態
+      };
+
+      Mfapi.Map.GeometryLayer['gLayer'].addCircle(circleOptions, 'circle#1');
+      Mfapi.Map.GeometryLayer['gLayer'].addPolyline(polylineOptions, 'polyline#1');
+      Mfapi.Map.GeometryLayer['gLayer'].addPolygon(polygonOptions, 'polygon#1');
+
+      // マーカーレイヤーを追加します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### マーカー　フィーチャー識別子作成および条件設定 ###
+      // "imageUrl"はユーザー指定イメージパスを指定するプロパティです。
+      // "imageUrl"にカラーユニバーサルデザインに対応した設定値「./img/pin_cud1.png」を設定します。
+      // 詳細は別紙「MapFanAPI_おもてなしマップご利用案内」の仕様をご参照下さい。
+      var markerId = 'marker#1';
+      var markerOptions = {
+        position   : new Mfapi.Util.LonLat(139.7022137995307,35.693399845417765),
+        imageUrl   : './img/pin_cud1.png',
+        imageSize  : new Mfapi.Util.ScreenSize(31,37),
+        imageOffset: new Mfapi.Util.ScreenPoint(-16, -34)
+      };
+
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOptions, markerId);
+
+      // ルートを描画します。
+      var routeId = 'route1';
+
+      var rteCalcOptions = {
+        start       : new Mfapi.Util.LonLat(139.692305587146767,35.69462305393875),
+        via         : [new Mfapi.Util.LonLat(139.69615709913361,35.69347678961987)],
+        destination : new Mfapi.Util.LonLat(139.6988151539445,35.693702766741)
+      };
+
+      //### 経路描画条件"rteDrawOptions"の作成 ###
+      // "drawMarkerType"はルートのマーカー描画タイプを指定するプロパティです。
+      // "drawMarkerType"にカラーユニバーサルデザインに対応した設定値「STANDARD_ROUTE：標準デザインの標準サイズ」を設定します。
+      // "drawPolylineType"はルートのポリライン描画タイプを指定するプロパティです。
+      // "drawPolylineType"にカラーユニバーサルデザインに対応した設定値「STANDARD_ROUTE_COLOR_GREEN：グリーンの標準サイズ」を設定します。
+      // 詳細は別紙「MapFanAPI_おもてなしマップご利用案内」の仕様をご参照下さい。
+      var rteDrawOptions = {
+        drawMarkerType   : Mfapi.Const.DrawMarkerType.STANDARD_ROUTE,
+        drawPolylineType : Mfapi.Const.DrawPolylineType.STANDARD_ROUTE_COLOR_GREEN,
+        geometryLayerId : 'gLayer',
+        markerLayerId : 'mLayer'
+      };
+
+      var func = function(id) {
+      };
+
+      Mfapi.Route.requestRouteCalcAndDraw(routeId,rteCalcOptions,rteDrawOptions,func);
+
+    }
+  </script>
+</head>
+<body>
+  <!--地図DIVタグ-->
+  <div id='sample_map'></div>
+  <!--地図中心を示すパーツのDIVタグ-->
+  <div id='center_div'><img id='center_image' src='img/center.png'></div>
+</body>
+</html>

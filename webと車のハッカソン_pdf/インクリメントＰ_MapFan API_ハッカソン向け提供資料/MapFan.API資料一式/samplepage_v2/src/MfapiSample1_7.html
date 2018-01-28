@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【1-7.コントローラー設定（カスタムボタン複数個）】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+    .mycustombtn {
+      font-size : 10pt;
+      font-family : 'sans-serif';
+      font-weight : normal;
+      border-radius: 2px;
+      display : "block";
+      margin : 1px;
+      padding: 4px;
+      text-decoration: none;
+      text-align: center;
+      line-height: 1.2em;
+      border : none;
+      background-color: royalblue;
+      color: white;
+      opacity : 0.8;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.70030321482975,35.68955994193983),
+        mapScale : 15
+      };
+
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### カスタムボタン設定 ###
+
+      // 地図DIVを取得します。
+      var eleMap = document.getElementById('sample_map');
+
+      // カスタムボタンを表示するカスタムコントーラーを作成します。
+      var customCtrl = document.createElement('div');
+      customCtrl.className = 'mycustomctrl';
+
+      // 地図中心座標を取得します。
+      var centerPosition = options.centerPosition;
+
+      // 「中心に移動」カスタムボタンを作成します。
+      var button = document.createElement('button');
+      button.innerHTML = '中心に移動';
+      button.id = 'center_map';
+      button.className = 'mycustombtn';
+      // 「中心に移動」ボタンをクリックした時に設定した座標を地図の中心座標に設定します。
+      button.addEventListener('click', function() {
+        Mfapi.Map.setCenterPosition(centerPosition);
+      });
+
+      // 「中心に移動」カスタムボタンをカスタムコントローラーに設定します。
+      customCtrl.appendChild(button);
+
+      // 「中心を設定」カスタムボタン作成します。
+      var button = document.createElement('button');
+      button.innerHTML = '中心を設定';
+      button.id = 'set_center';
+      button.className = 'mycustombtn';
+      // 「中心を設定」ボタンをクリックした時に地図の中心座標を保持します。
+      button.addEventListener('click', function() {
+        centerPosition = Mfapi.Map.getCenterPosition();
+      });
+
+      // 「中心を設定」カスタムボタンをカスタムコントローラーに設定します。
+      customCtrl.appendChild(button);
+
+      // 地図DIVにカスタムコントローラーを設定します。
+      eleMap.appendChild(customCtrl);
+
+      // カスタムボタンのスタイルを設定します。
+      customCtrl.style.position = "absolute";
+      customCtrl.style.top = '10px';
+      customCtrl.style.left = Math.round(eleMap.getBoundingClientRect().width / 2 - customCtrl.getBoundingClientRect().width / 2) + 'px';
+    }
+  </script>
+</head>
+
+<body>
+  <!--地図DIVタグ-->
+  <div id='sample_map'></div>
+</body>
+
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【2-1.マーカー作成】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+    .markerTitleContainer {
+      border : 1px solid darkgray;
+      border-radius: 2px;
+      background-color: white;
+      color: black;
+      padding: 2px;
+      box-shadow: 5px 2px 1px 1px rgba(0, 0, 0, 0.3);
+    }
+    .markerTitleLabel {
+      font-size : 9pt;
+      font-family : 'sans-serif';
+      font-weight : normal;
+      user-select : none;
+      cursor : default;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### マーカーレイヤー作成処理 ###
+      // マーカーを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### マーカー作成処理 ###
+      var markerId = 'marker';   // マーカーのフィーチャー識別子
+      // マーカーの作成条件を設定します。
+      var markerOpt = {
+        position :  new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),  // 東京都庁
+      };
+
+      // マーカーレイヤーにマーカーを登録します。
+      Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOpt, markerId);
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

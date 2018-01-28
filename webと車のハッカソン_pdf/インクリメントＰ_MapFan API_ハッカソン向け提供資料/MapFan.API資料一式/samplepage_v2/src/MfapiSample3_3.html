@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-3.ポリライン作成】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### ジオメトリーレイヤー作成処理 ###
+      // ポリラインを表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### ポリライン作成処理 ###
+      var polylineId = 'polyline1';     // ポリラインのフィーチャー識別子
+
+      // ポリラインの作成条件を設定します。
+      var polylineOpt = {
+        lineColor : '#0000ff', // 線の色
+        lineWidth : 4,         // 線の幅
+        opacity : 0.8,         // 不透明度
+        positions : [
+          new Mfapi.Util.LonLat(139.70090283767686,35.68851826791775),  // 新宿駅
+          new Mfapi.Util.LonLat(139.7108740987224,35.72992490706989),   // 池袋駅
+          new Mfapi.Util.LonLat(139.77649106403516,35.713413463237565), // 上野駅
+          new Mfapi.Util.LonLat(139.8166571438273,35.718386818767186),  // 曳舟駅
+          new Mfapi.Util.LonLat(139.826947289596,35.69723830373342),    // 亀戸駅
+          new Mfapi.Util.LonLat(139.77311565279877,35.69837872503799)   // 秋葉原駅
+        ],
+        visible : true         // 表示ON/OFF
+      };
+
+      // ジオメトリーレイヤーにポリラインを登録します
+      Mfapi.Map.GeometryLayer['gLayer'].addPolyline(polylineOpt, polylineId);
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>

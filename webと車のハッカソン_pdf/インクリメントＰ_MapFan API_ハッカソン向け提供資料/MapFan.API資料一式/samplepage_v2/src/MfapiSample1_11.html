@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>Mfapiサンプル【1-11.指定範囲が収まる地図縮尺取得・変更】</title>
+  <!--地図DIVのスタイル-->
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 地点リスト ###
+    // 表示座標、ポップアップ表示内容、ユーザー指定イメージパス、イメージサイズ、表示位置オフセットを設定します。
+    var pointData = [
+      { id: 'tokyo',
+        name: '東京本社ビル', lon: 139.7672311841094, lat: 35.68119593467379,
+        text: '<div><b>東京本社ビル</b><br>tel 03-XXXX-XXXX</div>',
+        imageUrl:'./img/a.gif', width:48, height:48, x:-24, y:-36 },
+      { id: 'shinbashi',
+        name: '新橋営業所', lon: 139.75821002138233, lat: 35.66657238126213,
+        text: '<div><b>新橋営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 10:00-19:00</div>',
+        markerType: 1 },
+      { id: 'toyosu',
+        name: '豊洲配送事業所', lon: 139.7959191978587, lat: 35.655211407306176,
+        text: '<div><b>豊洲配送事業所</b><br>tel 03-XXXX-XXXX</div>',
+        imageUrl:'./img/b.gif', width:48, height:48, x:-24, y:-30  },
+      { id: 'ariake',
+        name: '有明駅営業所', lon: 139.79315890678254, lat: 35.63467955160454,
+        text: '<div><b>有明駅営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 11:00-21:00</div>',
+        markerType: 1 },
+      { id: 'shinagawa',
+        name: '品川営業所', lon: 139.73875357500563, lat: 35.62850770123775,
+        text: '<div><b>品川営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-19:00</div>',
+        markerType: 1 },
+      { id: 'shibuya',
+        name: '渋谷営業所', lon: 139.70134957426947, lat: 35.65864567145413,
+        text: '<div><b>渋谷営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 8:00-21:00</div>',
+        markerType: 1 },
+      { id: 'shinjuku',
+        name: '新宿営業所', lon: 139.70090283767686, lat: 35.68851826791775,
+        text: '<div><b>新宿営業所</b><br>tel 03-XXXX-XXXX<br>営業時間 ２４時間営業</div>',
+        markerType: 6 }
+    ];
+
+    //### 認証処理と地図API、経路APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      Mfapi.routeHost = 'api-route-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var mapOptions = {
+        centerPosition : new Mfapi.Util.LonLat(139.7472311841094,35.66119593467379),
+        mapScale : 14
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',mapOptions);
+
+      //### マーカーレイヤー作成処理 ###
+      // マーカーを表示するためのマーカーレイヤーを作成します。
+      Mfapi.Map.addMarkerLayer('mLayer');
+
+      //### 指定範囲マーカー取得処理 ###
+      // 地点リストからマーカーとポップアップ生成し、緯度経度範囲を計算します。
+      var lon = [];
+      var lat = [];
+      for( var i=0; i<pointData.length; i++ ) {
+
+        //### ポップアップ作成処理 ###
+        var popUpId = 'popup_'+pointData[i].id; // ポップアップのフィーチャー識別子
+        // ポップアップの作成条件を設定します。
+        var popUpOptions = {
+          size : new Mfapi.Util.ScreenSize(180,80),
+          contentHtml : pointData[i].text,
+          visible : false
+        };
+        // ポップアップをマーカーと紐付けるため、ポップアップをFeaturesクラスに登録します。
+        Mfapi.Features.createPopUp(popUpOptions, popUpId);
+
+        //### マーカー作成処理 ###
+
+        var markerId = 'marker_'+pointData[i].id; // マーカーのフィーチャー識別子
+        // マーカーの作成条件を設定します。
+        var markerOptions = {
+          position : new Mfapi.Util.LonLat(pointData[i].lon, pointData[i].lat),
+          popUpKey : popUpId  // 紐付けを行うポップアップのフィーチャー識別子を指定します。
+        };
+        if( pointData[i].imageUrl !== undefined ) {
+          // 地点リストにユーザ指定イメージパスが存在する場合、
+          // ユーザー指定イメージパス、イメージサイズ、表示位置、不透明度、回転角度を指定します。
+          markerOptions.imageUrl = pointData[i].imageUrl;
+          markerOptions.imageSize = new Mfapi.Util.ScreenSize(pointData[i].width, pointData[i].height);
+          markerOptions.imageOffset = new Mfapi.Util.ScreenPoint(pointData[i].x, pointData[i].y);
+          markerOptions.imageOpacity = 0.8;
+        } else {
+          // 作成条件にマーカータイプを指定します。
+          markerOptions.markerType = pointData[i].markerType;
+        }
+        Mfapi.Map.MarkerLayer['mLayer'].addMarker(markerOptions, markerId);
+
+        // 各地点の緯度経度を設定します。
+        lon.push(pointData[i].lon);
+        lat.push(pointData[i].lat);
+
+      }
+
+      // 北東、南西の緯度経度を取得します。
+      var max = {'lon':Math.max.apply(null, lon), 'lat':Math.max.apply(null, lat)};
+      var min = {'lon':Math.min.apply(null, lon), 'lat':Math.min.apply(null, lat)};
+
+      // 地点が全て収まる地図縮尺を取得します。
+      var scale = Mfapi.Map.getScaleByRect(max.lat, max.lon, min.lat, min.lon);
+
+      // 地図の中心緯度経度とスケールを設定します。
+      Mfapi.Map.setCenterPosition({'lon':(max.lon+min.lon)/2,'lat':(max.lat+min.lat)/2},scale);
+    }
+
+  </script>
+</head>
+<body>
+  <!--地図描画対象となるDIVタグ-->
+  <div id='sample_map'></div>
+</body>
+</html>

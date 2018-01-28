@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+  <title>MFAPIサンプル【3-1.図形表示】</title>
+  <style type="text/css">
+    #sample_map {
+      width: 660px;
+      height: 280px;
+    }
+  </style>
+  <script type='text/javascript' src='http://api-auth-pre.mapfan.com/v2/jslib/js/map/mfjsapi'></script>
+  <script type='text/javascript' src='./appid.js'></script>
+  <script type='text/javascript'>
+
+    //### 認証処理と地図APIサーバ設定 ###
+    window.onload = function() {
+      Mfapi.mapHost = 'api-map-pre.mapfan.com';
+      // ※ appidはお客様の認証ＩＤを設定してください。
+      Mfapi.auth(appid, task_func);
+    }
+
+    //### 認証後コールバック関数 ###
+    function task_func(authStatus) {
+      //### 認証結果確認 ###
+      if( authStatus != 'success' ) {
+        return;
+      }
+      //### 地図作成条件の設定 ###
+      var options = {
+        centerPosition : new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),
+        mapScale : 11
+      };
+      //### 地図作成処理 ###
+      Mfapi.mapCreate('sample_map',options);
+
+      //### ジオメトリーレイヤー作成処理 ###
+      // ポイントを表示するためのジオメトリレイヤーを作成します。
+      Mfapi.Map.addGeometryLayer('gLayer');
+
+      //### サークル作成処理 ###
+      var circleId = 'circle1';   // サークルのフィーチャー識別子
+      // サークルの作成条件を設定します。
+      var circleOpt = {
+        edgeColor : '#ff0000',   // 枠線の色
+        edgeWidth : 4,           // 枠線の幅
+        fillColor : '#00ff00',   // 塗り色
+        opacity : 0.5,           // 不透明度
+        position :  new Mfapi.Util.LonLat(139.7672311841094,35.68119593467379),  // 東京駅
+        radius : 1600,           // 半径
+        visible : true           // 表示状態
+      };
+
+      // ジオメトリーレイヤーにサークルを登録します。
+      Mfapi.Map.GeometryLayer['gLayer'].addCircle(circleOpt, circleId);
+    }
+  </script>
+</head>
+<body>
+  <div id='sample_map'></div>
+</body>
+</html>
