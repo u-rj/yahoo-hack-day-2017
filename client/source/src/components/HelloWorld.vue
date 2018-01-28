@@ -1,5 +1,5 @@
 <template>
-  <div class="hello">
+  <div class="hello" @click="cancelAlert">
     <!--
     <h1>{{ msg }}</h1>
     <h2>Essential Links</h2>
@@ -20,13 +20,39 @@
     </ul>
     -->
     <video class="video" id="video"></video>
+    <gmap-map
+    class="map"
+    :center="{lng:139.747667, lat:35.702193}"
+    :zoom="11"
+    @click="getMapPosition"
+    style="width: 600px; height: 600px"
+    >
+    <div v-for="(m, index) in places">
+    <gmap-marker
+    :key="index"
+    :position="m"
+    :clickable="true"
+    ></gmap-marker>
+    <gmap-circle
+    :center="m"
+    :position="m"
+    fillColor="#ff0000"
+    :fillOpacity="0.5"
+    :radius="500"
+    strokeColor="#ff0000"
+    :strokeOpacity="0"
+    :clickable="true"
+    @click="circleClick"
+    ></gmap-circle>
+    </div>
+    </gmap-map>
     <img v-show="false" id="image">
     <canvas v-show="false" id="canvas"></canvas>
     <div v-show="alertType > 0" class="alert">
       <div v-show="alertType === 1">
         <img src="../assets/alert.png">
         <p>あおり運転を検知しました<br>
-        後方の車両に注意してください（仮）</p>
+        後方の車両に注意してください</p>
       </div>
       <div v-show="alertType === 2">
         <img src="../assets/alert.png">
@@ -37,7 +63,7 @@
       <div v-show="alertType === 3">
         <img src="../assets/alert.png">
         <p>１分後は危険度が高い地点です<br>
-        走行に注意してください（仮）
+        走行に注意してください
         </p>
       </div>
     </div>
@@ -51,6 +77,7 @@ export default {
   name: 'HelloWorld',
   data () {
     return {
+      places: null,
       msg: 'Welcome to Your Vue.js App',
       video: null,
       already: false,
@@ -61,11 +88,33 @@ export default {
     }
   },
   methods: {
+    cancelAlert () {
+      this.alertType = 0
+    },
     notify () {
       if (Notification.permission === 'default') {
         Notification.requestPermission()
       }
       Notification('危険運転を検知しました。')
+    },
+    getMapPosition (res) {
+      console.log(res.latLng.lat(), res.latLng.lng())
+    },
+    circleClick () {
+      this.alertType = 3
+      setTimeout(() => {
+        this.alertType = 0
+      }, 3000)
+    },
+    getNearMisses () {
+      jquery.get('/static/near-misses.json', (response) => {
+        this.places = response.result.list.map((value, index) => {
+          return {lat: value.latitude * 1, lng: value.longitude * 1}
+        }).filter((value, index) => {
+          return (index > 0)
+        })
+        console.log(this.places)
+      })
     },
     camera () {
       if (this.already) return
@@ -118,16 +167,17 @@ export default {
     }
   },
   mounted () {
+    this.getNearMisses()
+
     let alternate = 0
     let animate = () => {
       // let top = (window.scrollTop) ? window.scrollTop : document.scrollTop
       // top = alternate
       jquery('body, html').scrollTop(alternate)
-      alternate = (alternate === 0) ? 1 : 0
+      alternate = (alternate === 0) ? 50 : 0
       requestAnimationFrame(animate)
     }
     requestAnimationFrame(animate)
-    // this.notify()
     this.camera()
   }
 }
@@ -179,6 +229,11 @@ p {
   color: #FED340;
   line-height: 1.2;
   font-weight: bold;
+}
+.map {
+ position: fixed;
+ left: 800px;
+ top: 0;
 }
 </style>
 
